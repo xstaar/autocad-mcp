@@ -316,7 +316,22 @@ yqarch-mcp includes a **24-hour free trial** with full access to all 684 command
 ### How to get a license
 
 1. Run `node dist/index.js --license` to get your **Machine ID**
-2. Contact **xstaar** on [GitHub](https://github.com/xstaar/yqarch-mcp/issues) with your Machine ID and desired plan
+2. Contact me with your **Machine ID** and desired plan (monthly or yearly):
+
+<p align="center">
+  <a href="https://t.me/plxarized">
+    <img src="https://img.shields.io/badge/Telegram-@plxarized-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram">
+  </a>
+  &nbsp;
+  <a href="https://www.linkedin.com/in/xstaar">
+    <img src="https://img.shields.io/badge/LinkedIn-xstaar-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
+  </a>
+  &nbsp;
+  <a href="https://github.com/xstaar/yqarch-mcp/issues">
+    <img src="https://img.shields.io/badge/GitHub-Open_Issue-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Issues">
+  </a>
+</p>
+
 3. You will receive a license key tied to your machine (format: `YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX`)
 
 ### Activate your license
@@ -334,7 +349,7 @@ echo YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX > %USERPROFILE%\.yqarch-mcp-license
 
 ### Key renewal
 
-License keys expire after the subscription period (monthly or yearly). When your key expires, contact xstaar for a renewal key. The server will notify you when your key is about to expire.
+License keys expire after the subscription period (monthly or yearly). When your key expires, reach out on [Telegram](https://t.me/plxarized) or [LinkedIn](https://www.linkedin.com/in/xstaar) for a renewal key. The server will notify you when your key is about to expire.
 
 ---
 

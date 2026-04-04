@@ -210,8 +210,11 @@ export function validateLicense(): LicenseStatus {
         valid: false,
         type: "key_expired",
         message:
-          `License key expired. Please renew your subscription.\n` +
-          `  ${PURCHASE_URL}\n\n` +
+          `License key expired. Please renew your subscription.\n\n` +
+          `  Renew via:\n` +
+          `    Telegram: https://t.me/plxarized\n` +
+          `    LinkedIn: https://www.linkedin.com/in/xstaar\n` +
+          `    GitHub:   ${PURCHASE_URL}\n\n` +
           `Update your license key after renewal:\n` +
           `  Option 1: Set env YQARCH_LICENSE_KEY=YOUR-NEW-KEY\n` +
           `  Option 2: Save key to ${LICENSE_FILE}`,
@@ -236,8 +239,11 @@ export function validateLicense(): LicenseStatus {
     valid: false,
     type: "expired",
     message:
-      `Trial expired. Purchase a license to continue using ${PRODUCT_NAME}.\n` +
-      `  ${PURCHASE_URL}\n\n` +
+      `Trial expired. Purchase a license to continue using ${PRODUCT_NAME}.\n\n` +
+      `  Get a key:\n` +
+      `    Telegram: https://t.me/plxarized\n` +
+      `    LinkedIn: https://www.linkedin.com/in/xstaar\n` +
+      `    GitHub:   ${PURCHASE_URL}\n\n` +
       `Set your license key:\n` +
       `  Option 1: Set env YQARCH_LICENSE_KEY=YOUR-KEY\n` +
       `  Option 2: Save key to ${LICENSE_FILE}`,
@@ -261,7 +267,10 @@ export function printLicenseInfo(): void {
   console.log(`\nTo activate a license key:`);
   console.log(`  set YQARCH_LICENSE_KEY=YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX`);
   console.log(`  echo YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX > "${LICENSE_FILE}"`);
-  console.log(`\nPurchase a license: ${PURCHASE_URL}`);
+  console.log(`\nGet a license key:`);
+  console.log(`  Telegram: https://t.me/plxarized`);
+  console.log(`  LinkedIn: https://www.linkedin.com/in/xstaar`);
+  console.log(`  Pricing:  ${PURCHASE_URL}`);
 }
 
 /**
