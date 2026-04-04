@@ -60,7 +60,7 @@
 ### 1. Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/yqarch-mcp.git
+git clone https://github.com/xstaar/yqarch-mcp.git
 cd yqarch-mcp
 npm install
 npm run build
