@@ -294,6 +294,47 @@ All writes are atomic (`.tmp` + rename). Files are cleaned up after each command
 |----------|---------|-------------|
 | `YQARCH_MCP_IPC_DIR` | `C:/temp` | IPC directory for command/result files |
 | `YQARCH_MCP_IPC_TIMEOUT` | `15000` | Timeout in ms for LISP response |
+| `YQARCH_LICENSE_KEY` | — | License key (bypasses trial) |
+
+---
+
+## Pricing
+
+<p align="center">
+  <img src="https://img.shields.io/badge/24h_Free_Trial-Try_Now-brightgreen?style=for-the-badge" alt="Free Trial">
+</p>
+
+yqarch-mcp includes a **24-hour free trial** with full access to all 684 commands. After the trial, a license key is required.
+
+| Plan | Price | Duration | What you get |
+|------|-------|----------|-------------|
+| **Free Trial** | Free | 24 hours | All 684 commands, all 55 tools |
+| **Monthly** | $9.99/mo | 30 days | All features, 1 machine |
+| **Yearly** | $79.99/yr | 365 days | All features, 1 machine (save 33%) |
+| **Enterprise** | Contact us | Custom | Multiple machines, priority support |
+
+### How to get a license
+
+1. Run `node dist/index.js --license` to get your **Machine ID**
+2. Contact **xstaar** on [GitHub](https://github.com/xstaar/yqarch-mcp/issues) with your Machine ID and desired plan
+3. You will receive a license key tied to your machine (format: `YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX`)
+
+### Activate your license
+
+```bash
+# Get your Machine ID
+node dist/index.js --license
+
+# Option 1: Environment variable
+set YQARCH_LICENSE_KEY=YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX
+
+# Option 2: Save to file
+echo YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX > %USERPROFILE%\.yqarch-mcp-license
+```
+
+### Key renewal
+
+License keys expire after the subscription period (monthly or yearly). When your key expires, contact xstaar for a renewal key. The server will notify you when your key is about to expire.
 
 ---
 
@@ -317,8 +358,12 @@ This MCP server makes every single one of those commands accessible to Claude AI
 
 MIT License - see [LICENSE](LICENSE)
 
+The software is open source, but a **license key** is required for use beyond the 24-hour trial period.
+
 ---
 
 <p align="center">
   <sub>Built with Claude Code | Powered by <a href="https://modelcontextprotocol.io">Model Context Protocol</a></sub>
+  <br>
+  <sub>Copyright 2026 xstaar. All rights reserved.</sub>
 </p>

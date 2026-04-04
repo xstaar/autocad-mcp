@@ -13,6 +13,26 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { IpcResponse } from "./ipc.js";
+import { validateLicense, printLicenseInfo, generateKeyForCustomer, LicenseStatus } from "./license.js";
+
+// ── License check (runs on every tool call) ──
+let licenseStatus: LicenseStatus;
+
+function checkLicense(): boolean {
+  licenseStatus = validateLicense();
+  return licenseStatus.valid;
+}
+
+function licenseDenied() {
+  return {
+    content: [{
+      type: "text" as const,
+      text: `ACCESS DENIED - License required\n\n${licenseStatus.message}\n\n` +
+        `Purchase: https://github.com/xstaar/yqarch-mcp#pricing`,
+    }],
+    isError: true,
+  };
+}
 
 // Typed tools
 import * as walls from "./tools/walls.js";
@@ -68,7 +88,7 @@ function err(e: unknown) {
   };
 }
 
-// Helper to register a tool concisely
+// Helper to register a tool concisely (with license gate)
 function reg(
   name: string,
   desc: string,
@@ -76,6 +96,7 @@ function reg(
   handler: (args: Record<string, unknown>) => Promise<IpcResponse>
 ) {
   server.tool(name, desc, schema, async (args: Record<string, unknown>) => {
+    if (!checkLicense()) return licenseDenied();
     try { return fmt(await handler(args)); } catch (e) { return err(e); }
   });
 }
@@ -184,6 +205,7 @@ server.tool(
   "Utilisez yq_list_commands pour découvrir les commandes disponibles par catégorie.",
   yqExecuteSchema,
   async (args: Record<string, unknown>) => {
+    if (!checkLicense()) return licenseDenied();
     try {
       const result = await handleYqExecute(args as { command: string; params?: Record<string, unknown> });
       return fmt(result);
@@ -210,10 +232,40 @@ server.tool(
 // ── Start ──
 
 async function main() {
+  // Handle --license flag to show license info
+  if (process.argv.includes("--license")) {
+    printLicenseInfo();
+    process.exit(0);
+  }
+
+  // Handle --generate-key for admin key generation
+  const genIdx = process.argv.indexOf("--generate-key");
+  if (genIdx !== -1) {
+    const machineId = process.argv[genIdx + 1];
+    const duration = (process.argv[genIdx + 2] || "monthly") as "monthly" | "yearly";
+    if (!machineId) {
+      console.error("Usage: node dist/index.js --generate-key <machine-id> [monthly|yearly]");
+      console.error("  machine-id: The customer's Machine ID (from --license output)");
+      console.error("  duration:   monthly (default) or yearly");
+      process.exit(1);
+    }
+    generateKeyForCustomer(machineId, duration);
+    process.exit(0);
+  }
+
+  // Validate license on startup
+  licenseStatus = validateLicense();
+  console.error(`yqarch-mcp v2.0.0 — 684 commands, 55 MCP tools`);
+  console.error(`License: ${licenseStatus.message}`);
+
+  if (!licenseStatus.valid) {
+    console.error("\n" + licenseStatus.message);
+    console.error("Server will start but all tools will require a license.");
+    console.error('Run with --license flag to get your license key.\n');
+  }
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("yqarch-mcp v2.0.0 — 684 commands, " +
-    (53 + 2) + " MCP tools — running on stdio");
 }
 
 main().catch((e) => {
