@@ -226,7 +226,7 @@ export interface LicenseStatus {
 const CONTACT_INFO =
   `  Contact:\n` +
   `    Telegram: https://t.me/plxarized\n` +
-  `    LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach`;
+  `    GitHub:   https://github.com/xstaar/autocad-mcp`;
 
 export function validateLicense(): LicenseStatus {
   // 1. Check local activation token (offline fast path)
@@ -327,7 +327,7 @@ export function printLicenseInfo(): void {
   console.log(`  Then restart the MCP server.\n`);
   console.log(`Get a license key:`);
   console.log(`  Telegram: https://t.me/plxarized`);
-  console.log(`  LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach`);
+  console.log(`  GitHub:   https://github.com/xstaar/autocad-mcp`);
 }
 
 export function printStockKeys(plan: string, count: number): void {

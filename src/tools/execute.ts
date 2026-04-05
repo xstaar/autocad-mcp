@@ -1,5 +1,5 @@
 /**
- * Generic tool to execute ANY of the 684 YQArch commands.
+ * Generic tool to execute ANY of the 684 architectural commands.
  * This is the catch-all for commands that don't have a dedicated typed tool.
  */
 
@@ -7,12 +7,12 @@ import { z } from "zod";
 import { dispatch } from "../ipc.js";
 import { categories, allCommandNames, commandIndex } from "../commands.js";
 
-// ─── yq_execute: run any YQ command ───
+// ─── yq_execute: run any command ───
 
 export const yqExecuteSchema = {
   command: z.string().describe(
-    "Nom de la commande YQArch (ex: YQ_WALL, YQ_DOOR, YQ_DIM_AUTO). " +
-    "Utilisez yq_list_commands pour découvrir les commandes disponibles."
+    "Command name (e.g. YQ_WALL, YQ_DOOR, YQ_DIM_AUTO). " +
+    "Use yq_list_commands to discover available commands."
   ),
   params: z.record(z.string(), z.unknown()).optional().describe(
     "Paramètres de la commande sous forme d'objet JSON. " +

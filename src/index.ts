@@ -2,7 +2,7 @@
 /**
  * autocad-mcp — MCP server for AutoCAD architectural design.
  *
- * Exposes ALL 684 YQArch commands via:
+ * Exposes ALL 684 architectural commands via:
  *   - ~35 typed tools for the most common architectural operations
  *   - yq_execute: generic tool to run ANY of the 684 commands
  *   - yq_list_commands: discover commands by category or keyword
@@ -105,7 +105,7 @@ function reg(
 //  WALLS (8 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_wall", "Tracer un mur double ligne avec YQArch", walls.yqWallSchema, walls.handleYqWall);
+reg("yq_wall", "Tracer un mur double ligne", walls.yqWallSchema, walls.handleYqWall);
 reg("yq_simple_wall", "Mur simple (une ligne)", walls.yqSimpleWallSchema, walls.handleYqSimpleWall);
 reg("yq_areawall", "Mur par zone/surface fermée", walls.yqAreawallSchema, walls.handleYqAreawall);
 reg("yq_line2wall", "Convertir une ligne existante en mur", walls.yqLine2wallSchema, walls.handleYqLine2wall);
@@ -201,8 +201,8 @@ reg("yq_entrance_arrow", "Flèche d'entrée", annotations.yqEntrancearrowSchema,
 // yq_execute: run any command
 server.tool(
   "yq_execute",
-  "Exécuter n'importe laquelle des 684 commandes YQArch. " +
-  "Utilisez yq_list_commands pour découvrir les commandes disponibles par catégorie.",
+  "Execute any of the 684 architectural commands by name. " +
+  "Use yq_list_commands to discover available commands by category.",
   yqExecuteSchema,
   async (args: Record<string, unknown>) => {
     if (!checkLicense()) return licenseDenied();
@@ -218,7 +218,7 @@ server.tool(
 // yq_list_commands: discover commands
 server.tool(
   "yq_list_commands",
-  "Lister et rechercher parmi les 684 commandes YQArch disponibles. " +
+  "List and search the 684 available architectural commands. " +
   "Filtrer par catégorie (walls, doors_windows, columns, stairs, dimensions, " +
   "grid_axes, hatching, layers, blocks, text, editing, curves, viewports, etc.) " +
   "ou rechercher par mot-clé.",

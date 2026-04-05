@@ -364,17 +364,17 @@
 ;;; ============================================================
 
 (defun c:yqmcp-start ()
-  "Start message for the YQArch MCP bridge."
+  "Start message for the AutoCAD MCP bridge."
   (princ "\n╔══════════════════════════════════════════╗")
-  (princ "\n║   YQArch MCP Bridge v2.0                ║")
-  (princ "\n║   IPC: C:/temp/acad_mcp_cmd_*.json    ║")
+  (princ "\n║   AutoCAD MCP Bridge v2.0               ║")
+  (princ "\n║   IPC: C:/temp/acad_mcp_cmd_*.json      ║")
   (princ "\n║   684 commands available                 ║")
   (princ "\n╚══════════════════════════════════════════╝")
-  (princ "\n[yqmcp] Run YQMCP-DISPATCH to process pending commands.")
-  (princ "\n[yqmcp] Or set up a timer reactor for auto-dispatch.")
+  (princ "\n[acad-mcp] Run YQMCP-DISPATCH to process pending commands.")
+  (princ "\n[acad-mcp] Or set up a timer reactor for auto-dispatch.")
   (princ)
 )
 
 ;;; Load message
-(princ "\n[yqmcp] YQArch MCP Bridge v2.0 loaded. Type YQMCP-START to begin.")
+(princ "\n[acad-mcp] AutoCAD MCP Bridge v2.0 loaded. Type YQMCP-START to begin.")
 (princ)

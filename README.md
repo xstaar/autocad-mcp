@@ -1,78 +1,101 @@
 <p align="center">
+  <img src="https://img.shields.io/badge/Claude_AI-MCP_Server-blueviolet?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude AI">
   <img src="https://img.shields.io/badge/AutoCAD-684_Commands-blue?style=for-the-badge" alt="684 Commands">
-  <img src="https://img.shields.io/badge/MCP-Protocol-green?style=for-the-badge" alt="MCP Protocol">
-  <img src="https://img.shields.io/badge/AutoCAD-2000%2B-red?style=for-the-badge" alt="AutoCAD">
+  <img src="https://img.shields.io/badge/55_Tools-MCP_Protocol-green?style=for-the-badge" alt="55 Tools">
   <img src="https://img.shields.io/badge/TypeScript-Node.js-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
 </p>
 
-# autocad-mcp
+<h1 align="center">autocad-mcp</h1>
 
-**MCP server that gives Claude AI full control of AutoCAD for architectural design — 684 commands, 55 tools.**
+<p align="center">
+  <strong>The most complete MCP server for AutoCAD architectural design.</strong><br>
+  684 commands. 55 tools. Powered by Claude AI.
+</p>
 
-> Draw walls, insert doors/windows, place columns, create stairs, auto-dimension, manage layers, hatch materials — all through natural language via Claude.
+<p align="center">
+  <em>Tell Claude what to draw. It handles the rest.</em>
+</p>
+
+---
+
+## What is this?
+
+**autocad-mcp** is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that connects **Claude AI** directly to **AutoCAD**. It gives Claude the ability to execute 684 architectural design commands — walls, doors, windows, columns, stairs, dimensions, layers, hatching, annotations, and more.
+
+Instead of clicking through menus, you just describe what you want:
+
+> *"Draw a 3-bedroom apartment. 200mm exterior walls, 100mm partitions. Add doors, windows, and auto-dimension everything."*
+
+Claude does the rest.
+
+### Requirements
+
+- **[Claude Pro/Max](https://claude.ai)** recommended for best results (more tool calls, longer context)
+- **Claude Desktop** or **Claude Code** (MCP host)
+- **AutoCAD** 2000+ on Windows
+- **Node.js** v18+
 
 ---
 
 ## How it works
 
 ```
-┌─────────────┐     stdio/JSON-RPC      ┌──────────────┐     file IPC (C:\temp\)     ┌──────────────┐
-│   Claude     │ ◄──────────────────────► │  autocad-mcp │ ◄────────────────────────► │   AutoCAD    │
-│  (Desktop /  │    MCP Protocol          │  (Node.js)   │   acad_mcp_cmd_*.json      │  Arch Plugin │
-│   CLI)       │                          │  55 tools     │   acad_mcp_result_*.json   │  (684 cmds)  │
-└─────────────┘                          └──────────────┘                             └──────────────┘
+┌─────────────────┐                    ┌──────────────┐                    ┌──────────────┐
+│   Claude AI     │   MCP Protocol     │  autocad-mcp │   File IPC         │   AutoCAD    │
+│   (Desktop /    │ ◄────────────────► │  (Node.js)   │ ◄───────────────► │              │
+│    Code)        │   55 tools         │  684 commands │   C:\temp\*.json   │  Arch Plugin │
+└─────────────────┘                    └──────────────┘                    └──────────────┘
 ```
 
-1. **Claude** calls an MCP tool (e.g., `yq_wall` with thickness + points)
-2. **autocad-mcp** writes a command JSON file to `C:\temp\`
-3. **LISP bridge** in AutoCAD reads the file, executes the command, writes result
-4. **autocad-mcp** polls for the result and returns it to Claude
+1. You tell **Claude** what to draw in natural language
+2. Claude picks the right MCP tools and calls **autocad-mcp**
+3. autocad-mcp writes command files to `C:\temp\`
+4. The **LISP bridge** in AutoCAD executes them and writes results back
+5. Claude reads the results and continues — iterating until your drawing is complete
+
+Everything happens in seconds. No manual intervention needed.
 
 ---
 
-## Features
+## 684 Commands across 22 Categories
 
 | Category | Tools | Commands | Examples |
 |----------|:-----:|:--------:|---------|
-| **Walls** | 8 | 22 | `yq_wall`, `yq_partitionwall`, `yq_curtainwall` |
-| **Doors & Windows** | 6 | 34 | `yq_door`, `yq_window`, `yq_glass_partition` |
-| **Columns** | 6 | 9 | `yq_r_column`, `yq_c_column`, `yq_l_column` |
-| **Stairs** | 6 | 8 | `yq_staircase_plan`, `yq_lift_plan`, `yq_banister` |
-| **Dimensions** | 8 | 58 | `yq_dim_auto`, `yq_gridaxis`, `yq_dim_linear` |
-| **Layers** | 9 | 35 | `yq_layer_new`, `yq_layer_iso`, `yq_layer_rename` |
-| **Hatching** | 4 | 26 | `yq_hatch_quick`, `yq_insulation`, `yq_stonetile` |
-| **Annotations** | 6 | 48 | `yq_text`, `yq_leader`, `yq_drawingtitle` |
-| **+ 14 categories** | -- | 444 | Blocks, Editing, Curves, Viewports, etc. |
-| **Generic** | 2 | **684** | `yq_execute` (any cmd), `yq_list_commands` |
-| **Total** | **55** | **684** | |
+| **Walls** | 8 | 22 | Double-line, partition, curtain walls |
+| **Doors & Windows** | 6 | 34 | Single, double, sliding, French doors |
+| **Columns** | 6 | 9 | Rectangular, circular, L, T, hollow |
+| **Stairs & Elevators** | 6 | 8 | Straight, curved, escalators, lifts |
+| **Dimensions & Grids** | 8 | 58 | Auto-dim, linear, aligned, grid axes |
+| **Layer Management** | 9 | 35 | Create, freeze, isolate, rename |
+| **Hatching & Materials** | 4 | 26 | Stone, wood, insulation patterns |
+| **Annotations** | 6 | 48 | Text, leaders, title blocks, symbols |
+| **+ 14 more categories** | -- | 444 | Blocks, editing, curves, viewports... |
+| **Total** | **55 tools** | **684 commands** | |
+
+Plus 2 generic tools:
+- `yq_execute` — run **any** of the 684 commands by name
+- `yq_list_commands` — search and browse all commands by category
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- **Windows 10/11** with AutoCAD (2000+)
-- **Node.js** v18+
-- **Claude Desktop** or **Claude CLI**
-
-### Install
+### 1. Install
 
 ```bash
 git clone https://github.com/xstaar/autocad-mcp.git
 cd autocad-mcp
-npm install
-npm run build
+npm install && npm run build
 ```
 
-### Load LISP Bridge in AutoCAD
+### 2. Load LISP Bridge in AutoCAD
 
 ```
 (load "C:/path/to/autocad-mcp/lisp/acad_mcp_bridge.lsp")
 YQMCP-START
 ```
 
-### Configure Claude Desktop
+### 3. Configure Claude Desktop
 
 Add to `%APPDATA%\Claude\claude_desktop_config.json`:
 
@@ -83,22 +106,22 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json`:
       "command": "node",
       "args": ["C:/path/to/autocad-mcp/dist/index.js"],
       "env": {
-        "ACAD_LICENSE_KEY": "ACMCP-XXXXX-XXXXX-XXXXX-XXXXX"
+        "ACAD_LICENSE_KEY": "YOUR-KEY-HERE"
       }
     }
   }
 }
 ```
 
-### Use it
+### 4. Talk to Claude
 
-Just talk to Claude:
+> *"Create a structural grid 6x4m, place columns at every intersection, draw 200mm walls between them, add a main entrance door and 4 windows."*
 
-> "Draw a 3-bedroom apartment with 200mm walls, doors, windows and auto-dimensions."
+Claude will execute the commands in AutoCAD through autocad-mcp.
 
 ---
 
-## Pricing
+## Licensing
 
 <p align="center">
   <img src="https://img.shields.io/badge/24h_Free_Trial-brightgreen?style=for-the-badge" alt="Free Trial">
@@ -106,62 +129,62 @@ Just talk to Claude:
 
 | Plan | Price | Duration |
 |------|-------|----------|
-| **Free Trial** | Free | 24 hours |
-| **Monthly** | $9.99/mo | 30 days |
-| **Yearly** | $79.99/yr | 365 days (save 33%) |
+| **Free Trial** | Free | 24 hours, all features |
+| **Monthly** | $9.99 | 30 days |
+| **Yearly** | $79.99 | 365 days (save 33%) |
+
+### How it works
+
+1. Set your license key: `set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXX`
+2. Restart the server — your key **auto-locks to your machine**
+3. One key = one machine. No exceptions.
+
+Keys are validated through our activation server. Even with full source code access, license tokens cannot be forged — the signing key is server-side only.
 
 ### Get a license
-
-Contact me with your desired plan. You'll receive a key that activates automatically on your machine — no setup, no device IDs.
 
 <p align="center">
   <a href="https://t.me/plxarized">
     <img src="https://img.shields.io/badge/Telegram-@plxarized-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram">
   </a>
   &nbsp;
-  <a href="https://www.linkedin.com/in/mohamedaminehaddach">
-    <img src="https://img.shields.io/badge/LinkedIn-Mohamed_Amine-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
-  </a>
-  &nbsp;
-  <a href="mailto:haddach.omteq@gmail.com">
-    <img src="https://img.shields.io/badge/Email-haddach.omteq-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email">
+  <a href="https://github.com/xstaar/autocad-mcp/issues">
+    <img src="https://img.shields.io/badge/GitHub-Open_Issue-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
   </a>
 </p>
 
-**Accepted payments:** PayPal ([paypal.me/haddachdev](https://www.paypal.com/paypalme/haddachdev)) and cryptocurrency.
-
-### Activate
-
-```bash
-set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXX
-```
-
-That's it. The key locks to your machine on first use. One key = one machine.
+**Accepted payments:** PayPal, cryptocurrency (BTC, ETH, SOL, USDT, and more).
 
 ---
 
-## How licensing works
+## Why Claude Pro / Max?
+
+This MCP server works with any Claude plan, but **Claude Pro or Max** is strongly recommended:
+
+- **More tool calls per conversation** — architectural drawings need many sequential commands
+- **Longer context window** — Claude can plan complex multi-room layouts in one go
+- **Priority access** — no rate limits interrupting your workflow
+- **Extended thinking** — better spatial reasoning for complex floor plans
+
+With Claude Free, you'll hit tool call limits quickly. With Pro/Max, Claude can design and draw an entire building floor plan in a single conversation.
+
+---
+
+## Architecture
 
 ```
-┌──────────┐      key + fingerprint      ┌───────────────────┐
-│  Your PC │  ────────────────────────►  │ Activation Server │
-│          │  ◄────────────────────────  │ (Netlify)         │
-│          │      signed token            │                   │
-└──────────┘                             └───────────────────┘
-     │                                          │
-     │  Token stored locally                    │  Key bound to
-     │  for offline use                         │  your machine
-     ▼                                          ▼
-  Works offline                           Can't reuse on
-  after activation                        another device
+autocad-mcp/
+├── src/
+│   ├── index.ts          # MCP server (55 tools registered)
+│   ├── ipc.ts            # File-based IPC with AutoCAD
+│   ├── license.ts        # Server-side activation system
+│   ├── commands.ts        # Registry of all 684 commands
+│   └── tools/            # Typed tool implementations
+├── lisp/
+│   └── acad_mcp_bridge.lsp  # AutoCAD LISP dispatcher
+├── website/              # Landing page + activation API
+└── dist/                 # Compiled + obfuscated output
 ```
-
-- **First launch**: Key is sent to the activation server with your machine fingerprint
-- **Server binds** the key to your machine and returns a signed token
-- **After activation**: Everything works offline — no internet needed
-- **Another machine?** Server rejects it. One key = one machine. No exceptions.
-
-The activation server is the single source of truth. Even with full access to this code, valid license tokens **cannot** be generated without the server's signing key.
 
 ---
 
@@ -171,20 +194,16 @@ The activation server is the single source of truth. Even with full access to th
 |----------|-------------|
 | `ACAD_LICENSE_KEY` | Your license key |
 | `ACAD_MCP_IPC_DIR` | IPC directory (default: `C:/temp`) |
-| `ACAD_MCP_IPC_TIMEOUT` | LISP response timeout in ms (default: `15000`) |
+| `ACAD_MCP_IPC_TIMEOUT` | Response timeout in ms (default: `15000`) |
 
 ---
 
 ## License
 
-Proprietary Software - All Rights Reserved
-
-Copyright 2026 Mohamed Amine Haddach. The source code is provided for transparency. A valid license key and activation are required for use beyond the trial period. Unauthorized redistribution, modification for license bypass, or reverse engineering of the activation system is prohibited.
+Proprietary Software. Source provided for transparency. See [LICENSE](LICENSE).
 
 ---
 
 <p align="center">
-  <sub>Powered by <a href="https://modelcontextprotocol.io">Model Context Protocol</a></sub>
-  <br>
-  <sub>Copyright 2026 Mohamed Amine Haddach. All rights reserved.</sub>
+  <sub>An MCP server for <a href="https://claude.ai">Claude AI</a> | Powered by <a href="https://modelcontextprotocol.io">Model Context Protocol</a></sub>
 </p>

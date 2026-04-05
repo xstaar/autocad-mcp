@@ -1,5 +1,5 @@
 /**
- * Complete registry of all 684 YQArch commands, categorized.
+ * Complete registry of all 684 architectural commands, categorized.
  * Used by yq_list_commands for discovery and yq_execute for validation.
  */
 
@@ -734,7 +734,7 @@ export const categories: YqCategory[] = [
   {
     id: "system",
     label: "Système & Paramètres / System & Settings",
-    description: "Configuration YQArch, unités, variables système",
+    description: "System settings, units, system variables",
     commands: [
       { name: "YQ_SYS_SETTING", description: "Paramètres système YQ" },
       { name: "YQ_SYSTEMSETUP", description: "Configuration système" },
@@ -746,13 +746,13 @@ export const categories: YqCategory[] = [
       { name: "YQ_COMMANDPANEL", description: "Panneau de commandes" },
       { name: "YQ_FUNCTIONFINDER", description: "Chercher une fonction" },
       { name: "YQ_SOURCEFINDER", description: "Chercher la source" },
-      { name: "YQ_MENU", description: "Menu YQArch" },
+      { name: "YQ_MENU", description: "Main menu" },
       { name: "YQ_SLIDEMENU", description: "Menu déroulant" },
       { name: "YQ_EXTRATOOLS", description: "Outils supplémentaires" },
       { name: "YQ_OTHERTOOLS", description: "Autres outils" },
-      { name: "YQ_VER", description: "Version YQArch" },
-      { name: "YQ_ABOUT", description: "À propos de YQArch" },
-      { name: "YQ_HELP", description: "Aide YQArch" },
+      { name: "YQ_VER", description: "Plugin version" },
+      { name: "YQ_ABOUT", description: "About plugin" },
+      { name: "YQ_HELP", description: "Help" },
       { name: "YQ_LANG", description: "Langue" },
       { name: "YQ_REPAIR", description: "Réparer dessin" },
       { name: "YQ_PURGEALL", description: "Purger tout" },
@@ -873,9 +873,9 @@ export const categories: YqCategory[] = [
       { name: "YQ_YDFY", description: "Raccourci YDFY" },
       { name: "YQ_EL2C", description: "Ellipse vers cercle" },
       { name: "YQ_TZCRACKER", description: "Outil TZ" },
-      { name: "YQ", description: "Menu principal YQArch" },
+      { name: "YQ", description: "Main command menu" },
       { name: "YQABOUT", description: "À propos" },
-      { name: "YQARCH", description: "Lancer YQArch" },
+      { name: "YQARCH", description: "Launch plugin" },
       { name: "YQHELP", description: "Aide" },
       { name: "YQJZ", description: "Raccourci YQJZ" },
       { name: "YQLANG", description: "Langue YQ" },
@@ -890,11 +890,11 @@ export const categories: YqCategory[] = [
       { name: "YQ_CZZ", description: "Raccourci CZZ" },
       { name: "YQ_ENTLIST2", description: "Liste entités type 2" },
       { name: "YQ_ENTLIST3", description: "Liste entités type 3" },
-      { name: "YQ_FORUM", description: "Forum YQArch" },
+      { name: "YQ_FORUM", description: "Community forum" },
       { name: "YQ_TRIMTHRUMS", description: "Ajuster extrémités" },
-      { name: "YQ_UNINSTALL", description: "Désinstaller YQArch" },
+      { name: "YQ_UNINSTALL", description: "Uninstall plugin" },
       { name: "YQ_VZZ", description: "Raccourci VZZ" },
-      { name: "YQ_WEBSITE", description: "Site web YQArch" },
+      { name: "YQ_WEBSITE", description: "Plugin website" },
     ],
   },
 ];
