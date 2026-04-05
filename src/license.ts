@@ -40,7 +40,7 @@ function hashString(input: string): string {
 
 // ── License key generation & validation ──
 
-type Duration = "monthly" | "yearly";
+type Duration = "monthly" | "yearly" | "permanent";
 
 /**
  * Generate a valid license key for a given machine ID with an expiration date.
@@ -55,7 +55,9 @@ export function generateLicenseKey(machineId?: string, duration?: Duration, from
 
   // Calculate expiry date
   const expiry = new Date(now);
-  if (duration === "yearly") {
+  if (duration === "permanent") {
+    expiry.setFullYear(2099, 11, 31); // Never expires
+  } else if (duration === "yearly") {
     expiry.setFullYear(expiry.getFullYear() + 1);
   } else {
     // Default: monthly
@@ -275,12 +277,14 @@ export function printLicenseInfo(): void {
 
 /**
  * CLI: generate a license key for a customer (admin use).
- * Usage: node dist/index.js --generate-key <machine-id> <monthly|yearly>
+ * Usage: node dist/index.js --generate-key <machine-id> <monthly|yearly|permanent>
  */
 export function generateKeyForCustomer(machineId: string, duration: Duration): void {
   const key = generateLicenseKey(machineId, duration);
   const expiry = new Date();
-  if (duration === "yearly") {
+  if (duration === "permanent") {
+    expiry.setFullYear(2099, 11, 31);
+  } else if (duration === "yearly") {
     expiry.setFullYear(expiry.getFullYear() + 1);
   } else {
     expiry.setMonth(expiry.getMonth() + 1);

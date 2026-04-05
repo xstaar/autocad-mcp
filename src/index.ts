@@ -242,11 +242,11 @@ async function main() {
   const genIdx = process.argv.indexOf("--generate-key");
   if (genIdx !== -1) {
     const machineId = process.argv[genIdx + 1];
-    const duration = (process.argv[genIdx + 2] || "monthly") as "monthly" | "yearly";
+    const duration = (process.argv[genIdx + 2] || "monthly") as "monthly" | "yearly" | "permanent";
     if (!machineId) {
-      console.error("Usage: node dist/index.js --generate-key <machine-id> [monthly|yearly]");
+      console.error("Usage: node dist/index.js --generate-key <machine-id> [monthly|yearly|permanent]");
       console.error("  machine-id: The customer's Machine ID (from --license output)");
-      console.error("  duration:   monthly (default) or yearly");
+      console.error("  duration:   monthly (default), yearly, or permanent (owner use)");
       process.exit(1);
     }
     generateKeyForCustomer(machineId, duration);
