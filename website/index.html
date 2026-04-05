@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>autocad-mcp - AI-Powered AutoCAD Architectural Tools</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav>
+      <div class="logo">autocad-mcp</div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#faq">FAQ</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>Control AutoCAD with AI</h1>
+      <p class="hero-subtitle">684 architectural commands at your fingertips. Draw walls, doors, columns, stairs, dimensions &mdash; all through natural language via Claude AI.</p>
+      <div class="hero-badges">
+        <span class="badge">684 Commands</span>
+        <span class="badge">55 MCP Tools</span>
+        <span class="badge">AutoCAD 2000+</span>
+        <span class="badge">24h Free Trial</span>
+      </div>
+      <a href="#pricing" class="btn btn-primary">Get Started</a>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="features">
+    <h2>Everything you need for architectural CAD</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">&#9632;</div>
+        <h3>Walls</h3>
+        <p>Double-line, partition, curtain walls. Change thickness, convert lines to walls.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9644;</div>
+        <h3>Doors & Windows</h3>
+        <p>Single, double, sliding doors. Fixed, casement, awning windows. Glass partitions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9635;</div>
+        <h3>Columns</h3>
+        <p>Rectangular, circular, L-shaped, T-shaped, hollow columns. Grid axis placement.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9650;</div>
+        <h3>Stairs</h3>
+        <p>Straight, curved staircases. Elevators, escalators, railings and handrails.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#8596;</div>
+        <h3>Dimensions</h3>
+        <p>Auto-dimensioning, linear, aligned, continuous, baseline. Structural grid axes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9776;</div>
+        <h3>Layers</h3>
+        <p>Create, rename, toggle, freeze, isolate layers. Full layer management.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9638;</div>
+        <h3>Hatching</h3>
+        <p>Quick hatch, insulation, stone tile, wood flooring patterns.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9998;</div>
+        <h3>Annotations</h3>
+        <p>Text, leaders, title blocks, section symbols, elevation markers.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how-it-works" class="how-it-works">
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Install</h3>
+        <p>Clone the repo, run npm install, load the LISP bridge in AutoCAD.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Connect</h3>
+        <p>Add autocad-mcp to your Claude Desktop config. It connects via MCP protocol.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Talk to Claude</h3>
+        <p>"Draw a 3-bedroom apartment with 200mm walls, doors, windows, and auto-dimensions."</p>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <h3>Done</h3>
+        <p>Claude executes the commands in AutoCAD. Your drawing is ready.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="pricing">
+    <h2>Simple, transparent pricing</h2>
+    <p class="pricing-subtitle">Start with a 24-hour free trial. No credit card required.</p>
+
+    <div class="pricing-cards">
+      <div class="pricing-card">
+        <div class="plan-name">Monthly</div>
+        <div class="plan-price">$9.99<span>/month</span></div>
+        <ul class="plan-features">
+          <li>All 684 commands</li>
+          <li>All 55 MCP tools</li>
+          <li>1 machine</li>
+          <li>30-day license key</li>
+          <li>Email support</li>
+        </ul>
+        <button class="btn btn-primary btn-buy" data-plan="monthly" disabled>
+          Buy Monthly License
+        </button>
+      </div>
+
+      <div class="pricing-card popular">
+        <div class="popular-badge">Best Value</div>
+        <div class="plan-name">Yearly</div>
+        <div class="plan-price">$79.99<span>/year</span></div>
+        <ul class="plan-features">
+          <li>All 684 commands</li>
+          <li>All 55 MCP tools</li>
+          <li>1 machine</li>
+          <li>365-day license key</li>
+          <li>Priority support</li>
+          <li>Save 33%</li>
+        </ul>
+        <button class="btn btn-primary btn-buy" data-plan="yearly" disabled>
+          Buy Yearly License
+        </button>
+      </div>
+    </div>
+
+    <!-- Machine ID input -->
+    <div class="machine-id-section">
+      <h3>Enter your Machine ID to purchase</h3>
+      <p>Run <code>node dist/index.js --license</code> to get your Machine ID</p>
+      <div class="machine-id-input">
+        <input type="text" id="machineId" placeholder="e.g. 6409a367862ae812f6b4e472" maxlength="24" pattern="[a-f0-9]{24}">
+        <button id="validateMachineId" class="btn btn-secondary">Validate</button>
+      </div>
+      <p id="machineIdError" class="error-text" style="display:none;"></p>
+      <p id="machineIdSuccess" class="success-text" style="display:none;">Machine ID validated. Select a plan above.</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="faq">
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <h3>What is a Machine ID?</h3>
+        <p>A unique fingerprint of your computer. Run <code>node dist/index.js --license</code> to get it. It ensures your license key works only on your machine.</p>
+      </div>
+      <div class="faq-item">
+        <h3>How do I receive my license key?</h3>
+        <p>Instantly after payment. The key is shown on the confirmation page and included in your email receipt.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Can I transfer my license to another machine?</h3>
+        <p>License keys are tied to a specific machine. Contact support if you need to transfer.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What happens when my license expires?</h3>
+        <p>The tools will stop working until you renew. Your AutoCAD drawings are unaffected.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Do you offer refunds?</h3>
+        <p>We offer a 24-hour free trial so you can test before buying. All sales are final.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="logo">autocad-mcp</div>
+        <p>AI-powered architectural design for AutoCAD</p>
+      </div>
+      <div class="footer-links">
+        <h4>Contact</h4>
+        <a href="https://t.me/plxarized">Telegram @plxarized</a>
+        <a href="https://www.linkedin.com/in/mohamedaminehaddach">LinkedIn</a>
+        <a href="https://github.com/xstaar">GitHub</a>
+      </div>
+      <div class="footer-links">
+        <h4>Legal</h4>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Copyright 2026 Mohamed Amine Haddach. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

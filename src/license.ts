@@ -1,13 +1,13 @@
 /**
- * License key system for yqarch-mcp.
+ * License key system for autocad-mcp.
  *
  * Keys are time-limited (monthly or yearly) and validated against a machine fingerprint.
- * Format: YQMCP-XXXXX-XXXXX-XXXXX-XXXXX-MM
- *   where MM = expiry month offset encoded in the key
+ * Format: ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX
+ *   where the last segment is the expiry date (YYYYMMDD)
  *
- * Trial: 1 day from first run (stored in ~/.yqarch-mcp-trial).
- * After trial: requires a valid license key in env YQARCH_LICENSE_KEY
- * or in file ~/.yqarch-mcp-license.
+ * Trial: 1 day from first run (stored in ~/.autocad-mcp-trial).
+ * After trial: requires a valid license key in env ACAD_LICENSE_KEY
+ * or in file ~/.autocad-mcp-license.
  */
 
 import * as crypto from "crypto";
@@ -15,14 +15,16 @@ import * as os from "os";
 import * as fs from "fs";
 import * as path from "path";
 
-const PRODUCT_NAME = "yqarch-mcp";
-const LICENSE_SECRET = "yqarch-mcp-2026-claude-architectural-cad";
+const PRODUCT_NAME = "autocad-mcp";
+// Secret loaded from env (for admin key generation) with obfuscated fallback
+const _s = [97,99,97,100,45,109,99,112,45,50,48,50,54,45,99,108,97,117,100,101];
+const LICENSE_SECRET = process.env.ACAD_LICENSE_SECRET || String.fromCharCode(..._s);
 const TRIAL_DAYS = 1;
-const PURCHASE_URL = "https://github.com/xstaar/yqarch-mcp#pricing";
+const PURCHASE_URL = "https://github.com/xstaar/autocad-mcp#pricing";
 
 const HOME = os.homedir();
-const TRIAL_FILE = path.join(HOME, ".yqarch-mcp-trial");
-const LICENSE_FILE = path.join(HOME, ".yqarch-mcp-license");
+const TRIAL_FILE = path.join(HOME, ".autocad-mcp-trial");
+const LICENSE_FILE = path.join(HOME, ".autocad-mcp-license");
 
 // ── Machine fingerprint ──
 
@@ -31,7 +33,25 @@ function getMachineId(): string {
   const username = os.userInfo().username;
   const platform = os.platform();
   const arch = os.arch();
+  // Include CPU model for stronger hardware binding
+  const cpus = os.cpus();
+  const cpuModel = cpus.length > 0 ? cpus[0].model : "unknown";
+  const totalMem = os.totalmem().toString();
+  const raw = `${hostname}|${username}|${platform}|${arch}|${cpuModel}|${totalMem}`;
+  // Return readable short form for display, but use full hash internally
   return `${hostname}|${username}|${platform}|${arch}`;
+}
+
+/** Full machine fingerprint for key generation (harder to spoof) */
+function getMachineFingerprint(): string {
+  const hostname = os.hostname();
+  const username = os.userInfo().username;
+  const platform = os.platform();
+  const arch = os.arch();
+  const cpus = os.cpus();
+  const cpuModel = cpus.length > 0 ? cpus[0].model : "unknown";
+  const totalMem = os.totalmem().toString();
+  return hashString(`${hostname}|${username}|${platform}|${arch}|${cpuModel}|${totalMem}`).slice(0, 24);
 }
 
 function hashString(input: string): string {
@@ -45,12 +65,12 @@ type Duration = "monthly" | "yearly" | "permanent";
 /**
  * Generate a valid license key for a given machine ID with an expiration date.
  *
- * Key format: YQMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
+ * Key format: ACMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
  * The last segment encodes the expiry date, and the hash segments
  * are derived from machine + secret + expiry to prevent tampering.
  */
 export function generateLicenseKey(machineId?: string, duration?: Duration, fromDate?: Date): string {
-  const mid = machineId || getMachineId();
+  const mid = machineId || getMachineFingerprint();
   const now = fromDate || new Date();
 
   // Calculate expiry date
@@ -67,9 +87,9 @@ export function generateLicenseKey(machineId?: string, duration?: Duration, from
   const expiryStr = formatExpiry(expiry);
   const raw = hashString(`${LICENSE_SECRET}:${mid}:${expiryStr}`);
 
-  // Format: YQMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
+  // Format: ACMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
   const key = [
-    "YQMCP",
+    "ACMCP",
     raw.slice(0, 5).toUpperCase(),
     raw.slice(5, 10).toUpperCase(),
     raw.slice(10, 15).toUpperCase(),
@@ -102,8 +122,8 @@ function parseExpiry(expiryStr: string): Date | null {
  */
 function validateKey(key: string): { valid: boolean; expired: boolean; daysRemaining: number } {
   const parts = key.trim().toUpperCase().split("-");
-  // Expected: YQMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
-  if (parts.length !== 5 || parts[0] !== "YQMCP") {
+  // Expected: ACMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
+  if (parts.length !== 5 || parts[0] !== "ACMCP") {
     return { valid: false, expired: false, daysRemaining: 0 };
   }
 
@@ -114,7 +134,7 @@ function validateKey(key: string): { valid: boolean; expired: boolean; daysRemai
   }
 
   // Recompute hash to verify key authenticity
-  const mid = getMachineId();
+  const mid = getMachineFingerprint();
   const raw = hashString(`${LICENSE_SECRET}:${mid}:${expiryStr}`);
   const expectedHash = [
     raw.slice(0, 5).toUpperCase(),
@@ -154,7 +174,17 @@ function getTrialStart(): Date | null {
 
 function startTrial(): Date {
   const now = new Date();
-  fs.writeFileSync(TRIAL_FILE, now.toISOString(), "utf-8");
+  // Atomic write to prevent race condition
+  const tmp = TRIAL_FILE + ".tmp";
+  fs.writeFileSync(tmp, now.toISOString(), "utf-8");
+  try {
+    fs.renameSync(tmp, TRIAL_FILE);
+  } catch {
+    try { fs.unlinkSync(tmp); } catch {}
+    // Another process created it first — read theirs
+    const existing = getTrialStart();
+    if (existing) return existing;
+  }
   return now;
 }
 
@@ -172,7 +202,7 @@ function getTrialDaysRemaining(): number {
 
 function getStoredKey(): string | null {
   // 1. Environment variable
-  const envKey = process.env.YQARCH_LICENSE_KEY;
+  const envKey = process.env.ACAD_LICENSE_KEY;
   if (envKey) return envKey;
 
   // 2. License file
@@ -215,10 +245,10 @@ export function validateLicense(): LicenseStatus {
           `License key expired. Please renew your subscription.\n\n` +
           `  Renew via:\n` +
           `    Telegram: https://t.me/plxarized\n` +
-          `    LinkedIn: https://www.linkedin.com/in/xstaar\n` +
+          `    LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach\n` +
           `    GitHub:   ${PURCHASE_URL}\n\n` +
           `Update your license key after renewal:\n` +
-          `  Option 1: Set env YQARCH_LICENSE_KEY=YOUR-NEW-KEY\n` +
+          `  Option 1: Set env ACAD_LICENSE_KEY=YOUR-NEW-KEY\n` +
           `  Option 2: Save key to ${LICENSE_FILE}`,
       };
     }
@@ -244,10 +274,10 @@ export function validateLicense(): LicenseStatus {
       `Trial expired. Purchase a license to continue using ${PRODUCT_NAME}.\n\n` +
       `  Get a key:\n` +
       `    Telegram: https://t.me/plxarized\n` +
-      `    LinkedIn: https://www.linkedin.com/in/xstaar\n` +
+      `    LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach\n` +
       `    GitHub:   ${PURCHASE_URL}\n\n` +
       `Set your license key:\n` +
-      `  Option 1: Set env YQARCH_LICENSE_KEY=YOUR-KEY\n` +
+      `  Option 1: Set env ACAD_LICENSE_KEY=YOUR-KEY\n` +
       `  Option 2: Save key to ${LICENSE_FILE}`,
   };
 }
@@ -256,22 +286,22 @@ export function validateLicense(): LicenseStatus {
  * CLI: show license info for this machine.
  */
 export function printLicenseInfo(): void {
-  const mid = getMachineId();
+  const mid = getMachineFingerprint();
   const status = validateLicense();
 
   console.log("╔══════════════════════════════════════════════════╗");
-  console.log("║           yqarch-mcp License Info                ║");
+  console.log("║           autocad-mcp License Info                ║");
   console.log("╠══════════════════════════════════════════════════╣");
   console.log(`║  Machine ID: ${mid.slice(0, 34).padEnd(35)}║`);
   console.log(`║  Status: ${status.message.split("\n")[0].slice(0, 39).padEnd(39)}║`);
   console.log("╚══════════════════════════════════════════════════╝");
 
   console.log(`\nTo activate a license key:`);
-  console.log(`  set YQARCH_LICENSE_KEY=YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX`);
-  console.log(`  echo YQMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX > "${LICENSE_FILE}"`);
+  console.log(`  set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX`);
+  console.log(`  echo ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX > "${LICENSE_FILE}"`);
   console.log(`\nGet a license key:`);
   console.log(`  Telegram: https://t.me/plxarized`);
-  console.log(`  LinkedIn: https://www.linkedin.com/in/xstaar`);
+  console.log(`  LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach`);
   console.log(`  Pricing:  ${PURCHASE_URL}`);
 }
 
@@ -291,7 +321,7 @@ export function generateKeyForCustomer(machineId: string, duration: Duration): v
   }
 
   console.log("╔══════════════════════════════════════════════════╗");
-  console.log("║        yqarch-mcp Key Generator (Admin)          ║");
+  console.log("║        autocad-mcp Key Generator (Admin)          ║");
   console.log("╠══════════════════════════════════════════════════╣");
   console.log(`║  Machine ID: ${machineId.slice(0, 34).padEnd(35)}║`);
   console.log(`║  Duration:   ${duration.padEnd(35)}║`);
@@ -300,5 +330,5 @@ export function generateKeyForCustomer(machineId: string, duration: Duration): v
   console.log("╚══════════════════════════════════════════════════╝");
   console.log(`\nSend this key to the customer.`);
   console.log(`They activate it with:`);
-  console.log(`  set YQARCH_LICENSE_KEY=${key}`);
+  console.log(`  set ACAD_LICENSE_KEY=${key}`);
 }

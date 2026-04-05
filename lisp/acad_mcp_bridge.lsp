@@ -1,11 +1,11 @@
-;;;; yq_mcp_bridge.lsp — Generic bridge between yqarch-mcp (Node.js) and YQArch in AutoCAD
+;;;; acad_mcp_bridge.lsp — Generic bridge between autocad-mcp (Node.js) and AutoCAD
 ;;;;
-;;;; This bridge can dispatch ANY YQArch command received from the MCP server.
-;;;; It reads command files from C:/temp/, executes the YQ command, and writes the result.
+;;;; This bridge dispatches architectural commands received from the MCP server.
+;;;; It reads command files from C:/temp/, executes the command, and writes the result.
 ;;;;
 ;;;; Protocol:
-;;;;   Request:  C:/temp/yqarch_mcp_cmd_{id}.json
-;;;;   Response: C:/temp/yqarch_mcp_result_{id}.json
+;;;;   Request:  C:/temp/acad_mcp_cmd_{id}.json
+;;;;   Response: C:/temp/acad_mcp_result_{id}.json
 
 (setq *yqmcp-ipc-dir* "C:/temp/")
 
@@ -301,7 +301,7 @@
 
 (defun c:yqmcp-dispatch ( / files fname f fh json line cmd req-id result result-file)
   "Scan for pending MCP command files and process them."
-  (setq files (vl-directory-files *yqmcp-ipc-dir* "yqarch_mcp_cmd_*.json" 1))
+  (setq files (vl-directory-files *yqmcp-ipc-dir* "acad_mcp_cmd_*.json" 1))
   (foreach fname files
     (setq f (strcat *yqmcp-ipc-dir* fname))
     (princ (strcat "\n[yqmcp] Processing: " fname))
@@ -334,7 +334,7 @@
 
             ;; Write result
             (setq result-file
-              (strcat *yqmcp-ipc-dir* "yqarch_mcp_result_" req-id ".json")
+              (strcat *yqmcp-ipc-dir* "acad_mcp_result_" req-id ".json")
             )
 
             (if (vl-catch-all-error-p result)
@@ -367,7 +367,7 @@
   "Start message for the YQArch MCP bridge."
   (princ "\n╔══════════════════════════════════════════╗")
   (princ "\n║   YQArch MCP Bridge v2.0                ║")
-  (princ "\n║   IPC: C:/temp/yqarch_mcp_cmd_*.json    ║")
+  (princ "\n║   IPC: C:/temp/acad_mcp_cmd_*.json    ║")
   (princ "\n║   684 commands available                 ║")
   (princ "\n╚══════════════════════════════════════════╝")
   (princ "\n[yqmcp] Run YQMCP-DISPATCH to process pending commands.")

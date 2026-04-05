@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * yqarch-mcp — MCP server for YQArch (源泉设计) AutoCAD plugin.
+ * autocad-mcp — MCP server for AutoCAD architectural design.
  *
  * Exposes ALL 684 YQArch commands via:
  *   - ~35 typed tools for the most common architectural operations
@@ -28,7 +28,7 @@ function licenseDenied() {
     content: [{
       type: "text" as const,
       text: `ACCESS DENIED - License required\n\n${licenseStatus.message}\n\n` +
-        `Purchase: https://github.com/xstaar/yqarch-mcp#pricing`,
+        `Purchase: https://github.com/xstaar/autocad-mcp#pricing`,
     }],
     isError: true,
   };
@@ -51,7 +51,7 @@ import {
 } from "./tools/execute.js";
 
 const server = new McpServer({
-  name: "yqarch-mcp",
+  name: "autocad-mcp",
   version: "2.0.0",
 });
 
@@ -255,7 +255,7 @@ async function main() {
 
   // Validate license on startup
   licenseStatus = validateLicense();
-  console.error(`yqarch-mcp v2.0.0 — 684 commands, 55 MCP tools`);
+  console.error(`autocad-mcp v2.0.0 — 684 commands, 55 MCP tools`);
   console.error(`License: ${licenseStatus.message}`);
 
   if (!licenseStatus.valid) {

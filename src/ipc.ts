@@ -3,9 +3,9 @@
  * Same protocol as autocad-mcp: write request JSON, poll for response JSON.
  *
  * Flow:
- *  1. Write  C:/temp/yqarch_mcp_cmd_{id}.json
+ *  1. Write  C:/temp/acad_mcp_cmd_{id}.json
  *  2. LISP dispatcher (yq_mcp_bridge.lsp) picks it up
- *  3. LISP writes C:/temp/yqarch_mcp_result_{id}.json
+ *  3. LISP writes C:/temp/acad_mcp_result_{id}.json
  *  4. We poll until the result file appears, then read & delete both files.
  */
 
@@ -13,9 +13,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
 
-const IPC_DIR = process.env.YQARCH_MCP_IPC_DIR || "C:/temp";
+const IPC_DIR = process.env.ACAD_MCP_IPC_DIR || "C:/temp";
 const POLL_INTERVAL_MS = 100;
-const TIMEOUT_MS = Number(process.env.YQARCH_MCP_IPC_TIMEOUT) || 15000;
+const TIMEOUT_MS = Number(process.env.ACAD_MCP_IPC_TIMEOUT) || 15000;
 
 export interface IpcRequest {
   request_id: string;
@@ -66,7 +66,7 @@ function pollForFile(filePath: string, timeoutMs: number): Promise<void> {
 let ipcLock: Promise<unknown> = Promise.resolve();
 
 /**
- * Dispatch a command to the YQArch LISP bridge and return the response.
+ * Dispatch a command to the AutoCAD LISP bridge and return the response.
  */
 export async function dispatch(
   command: string,
@@ -85,8 +85,12 @@ async function dispatchUnlocked(
   ensureIpcDir();
 
   const requestId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-  const cmdFile = path.join(IPC_DIR, `yqarch_mcp_cmd_${requestId}.json`);
-  const resultFile = path.join(IPC_DIR, `yqarch_mcp_result_${requestId}.json`);
+  // Validate requestId is strictly alphanumeric (prevent path traversal)
+  if (!/^[a-f0-9]{12}$/.test(requestId)) {
+    throw new Error("Invalid request ID");
+  }
+  const cmdFile = path.join(IPC_DIR, `acad_mcp_cmd_${requestId}.json`);
+  const resultFile = path.join(IPC_DIR, `acad_mcp_result_${requestId}.json`);
 
   const request: IpcRequest = {
     request_id: requestId,
@@ -102,9 +106,25 @@ async function dispatchUnlocked(
     // 2. Wait for LISP to process and write the result
     await pollForFile(resultFile, TIMEOUT_MS);
 
-    // 3. Read result (try UTF-8 first)
+    // 3. Read result with size limit and validation
+    const stat = fs.statSync(resultFile);
+    if (stat.size > 10 * 1024 * 1024) { // 10MB max
+      throw new Error("IPC response too large (>10MB)");
+    }
     const raw = fs.readFileSync(resultFile, "utf-8");
-    const response: IpcResponse = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    // Validate response structure
+    if (typeof parsed !== "object" || parsed === null ||
+        typeof parsed.ok !== "boolean" ||
+        typeof parsed.request_id !== "string") {
+      throw new Error("Invalid IPC response structure");
+    }
+    const response: IpcResponse = {
+      request_id: String(parsed.request_id),
+      ok: Boolean(parsed.ok),
+      payload: (typeof parsed.payload === "object" && parsed.payload !== null) ? parsed.payload : {},
+      error: parsed.error ? String(parsed.error) : undefined,
+    };
     return response;
   } finally {
     // 4. Cleanup
