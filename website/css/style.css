@@ -367,6 +367,34 @@ nav {
   border-color: var(--primary);
 }
 
+.contact-methods {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+.contact-link:hover {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  text-decoration: none;
+}
+
+.contact-icon { font-size: 1.1rem; }
+
 .error-text { color: var(--error); font-size: 0.85rem; margin-top: 0.75rem; }
 .success-text { color: var(--success); font-size: 0.85rem; margin-top: 0.75rem; }
 

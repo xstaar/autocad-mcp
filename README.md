@@ -1,13 +1,13 @@
 <p align="center">
   <img src="https://img.shields.io/badge/AutoCAD-684_Commands-blue?style=for-the-badge" alt="684 Commands">
-  <img src="https://img.shields.io/badge/MCP-v2024--11--05-green?style=for-the-badge" alt="MCP Protocol">
+  <img src="https://img.shields.io/badge/MCP-Protocol-green?style=for-the-badge" alt="MCP Protocol">
   <img src="https://img.shields.io/badge/AutoCAD-2000%2B-red?style=for-the-badge" alt="AutoCAD">
-  <img src="https://img.shields.io/badge/Node.js-TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/TypeScript-Node.js-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
 </p>
 
 # autocad-mcp
 
-**MCP server that gives Claude AI full control of AutoCAD for architectural design — 684 commands, 55 MCP tools.**
+**MCP server that gives Claude AI full control of AutoCAD for architectural design — 684 commands, 55 tools.**
 
 > Draw walls, insert doors/windows, place columns, create stairs, auto-dimension, manage layers, hatch materials — all through natural language via Claude.
 
@@ -32,8 +32,8 @@
 
 ## Features
 
-| Category | Typed Tools | All Commands | Examples |
-|----------|:-----------:|:------------:|---------|
+| Category | Tools | Commands | Examples |
+|----------|:-----:|:--------:|---------|
 | **Walls** | 8 | 22 | `yq_wall`, `yq_partitionwall`, `yq_curtainwall` |
 | **Doors & Windows** | 6 | 34 | `yq_door`, `yq_window`, `yq_glass_partition` |
 | **Columns** | 6 | 9 | `yq_r_column`, `yq_c_column`, `yq_l_column` |
@@ -42,9 +42,9 @@
 | **Layers** | 9 | 35 | `yq_layer_new`, `yq_layer_iso`, `yq_layer_rename` |
 | **Hatching** | 4 | 26 | `yq_hatch_quick`, `yq_insulation`, `yq_stonetile` |
 | **Annotations** | 6 | 48 | `yq_text`, `yq_leader`, `yq_drawingtitle` |
-| **+ 14 more categories** | -- | 444 | Blocks, Editing, Curves, Viewports, etc. |
+| **+ 14 categories** | -- | 444 | Blocks, Editing, Curves, Viewports, etc. |
 | **Generic** | 2 | **684** | `yq_execute` (any cmd), `yq_list_commands` |
-| **Total** | **55 tools** | **684 commands** | |
+| **Total** | **55** | **684** | |
 
 ---
 
@@ -53,10 +53,10 @@
 ### Prerequisites
 
 - **Windows 10/11** with AutoCAD (2000+)
-- **Node.js** v18+ ([download](https://nodejs.org/))
+- **Node.js** v18+
 - **Claude Desktop** or **Claude CLI**
 
-### 1. Install
+### Install
 
 ```bash
 git clone https://github.com/xstaar/autocad-mcp.git
@@ -65,242 +65,54 @@ npm install
 npm run build
 ```
 
-### 2. Load LISP Bridge in AutoCAD
-
-In the AutoCAD command line:
+### Load LISP Bridge in AutoCAD
 
 ```
 (load "C:/path/to/autocad-mcp/lisp/acad_mcp_bridge.lsp")
 YQMCP-START
 ```
 
-Or add it to your `acaddoc.lsp` for auto-loading:
+### Configure Claude Desktop
 
-```lisp
-(if (findfile "C:/path/to/autocad-mcp/lisp/acad_mcp_bridge.lsp")
-    (load "C:/path/to/autocad-mcp/lisp/acad_mcp_bridge.lsp"))
-```
-
-### 3. Configure Claude
-
-Add to your Claude Desktop config (`%APPDATA%\Claude\claude_desktop_config.json`):
+Add to `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "autocad": {
       "command": "node",
-      "args": ["C:/path/to/autocad-mcp/dist/index.js"]
+      "args": ["C:/path/to/autocad-mcp/dist/index.js"],
+      "env": {
+        "ACAD_LICENSE_KEY": "ACMCP-XXXXX-XXXXX-XXXXX-XXXXX"
+      }
     }
   }
 }
 ```
 
-### 4. Use it
+### Use it
 
 Just talk to Claude:
 
-> "Draw a 3-bedroom apartment with a 5x4m living room, 3x3m kitchen, and two 3.5x3m bedrooms. 200mm walls. Add doors, windows and auto-dimensioning."
-
-Claude will use the MCP tools to draw everything in AutoCAD.
-
----
-
-## Tool Reference
-
-### Typed Tools (53)
-
-These have full Zod schemas with parameter validation and descriptions:
-
-<details>
-<summary><b>Walls (8)</b></summary>
-
-| Tool | Description |
-|------|-------------|
-| `yq_wall` | Draw a double-line wall with thickness and points |
-| `yq_simple_wall` | Draw a single-line wall |
-| `yq_areawall` | Create walls around a closed area |
-| `yq_line2wall` | Convert existing lines to walls |
-| `yq_wall_chgthk` | Change wall thickness |
-| `yq_partitionwall` | Draw a partition wall |
-| `yq_curtainwall` | Draw a curtain wall |
-| `yq_doubleline` | Draw a double line (foundation beam) |
-
-</details>
-
-<details>
-<summary><b>Columns (6)</b></summary>
-
-| Tool | Description |
-|------|-------------|
-| `yq_r_column` | Rectangular column |
-| `yq_c_column` | Circular column |
-| `yq_l_column` | L-shaped column |
-| `yq_t_column` | T-shaped column |
-| `yq_o_column` | Hollow/annular column |
-| `yq_axis_column` | Column on grid axis |
-
-</details>
-
-<details>
-<summary><b>Doors & Windows (6)</b></summary>
-
-| Tool | Description |
-|------|-------------|
-| `yq_door` | Insert a door (single, double, sliding, pocket) |
-| `yq_window` | Insert a window (fixed, casement, sliding, awning) |
-| `yq_windowdoor` | Insert a French door |
-| `yq_hole_door` | Punch a door opening in a wall |
-| `yq_hole_window` | Punch a window opening in a wall |
-| `yq_glass_partition` | Glass partition wall |
-
-</details>
-
-<details>
-<summary><b>Stairs (6)</b></summary>
-
-| Tool | Description |
-|------|-------------|
-| `yq_staircase_plan` | Straight staircase plan |
-| `yq_staircase_section` | Staircase section view |
-| `yq_arcstair_plan` | Curved staircase plan |
-| `yq_lift_plan` | Elevator plan |
-| `yq_banister` | Railing / handrail |
-| `yq_escalator` | Escalator |
-
-</details>
-
-<details>
-<summary><b>Dimensions & Grid (8)</b></summary>
-
-| Tool | Description |
-|------|-------------|
-| `yq_dim_auto` | Auto-dimension walls and openings |
-| `yq_gridaxis` | Structural grid axes |
-| `yq_dim_linear` | Linear dimension |
-| `yq_dim_aligned` | Aligned dimension |
-| `yq_dim_continue` | Continuous dimension chain |
-| `yq_dim_baseline` | Baseline dimension |
-| `yq_auto_axis_dim` | Auto-dimension grid axes |
-| `yq_axisline` | Axis line |
-
-</details>
-
-<details>
-<summary><b>Layers (9)</b></summary>
-
-| Tool | Description |
-|------|-------------|
-| `yq_layer_new` | Create a new layer |
-| `yq_layer_current` | Set current layer |
-| `yq_layer_off` / `yq_layer_on` | Toggle layer visibility |
-| `yq_layer_freeze` / `yq_layer_thaw` | Toggle layer freeze |
-| `yq_layer_iso` | Isolate a layer |
-| `yq_layer_showall` | Show all layers |
-| `yq_layer_rename` | Rename a layer |
-
-</details>
-
-<details>
-<summary><b>Hatching & Materials (4)</b></summary>
-
-| Tool | Description |
-|------|-------------|
-| `yq_hatch_quick` | Quick hatch with pattern |
-| `yq_insulation` | Insulation hatch |
-| `yq_stonetile` | Stone/tile pattern |
-| `yq_woodflooring` | Wood flooring pattern |
-
-</details>
-
-<details>
-<summary><b>Annotations & Symbols (6)</b></summary>
-
-| Tool | Description |
-|------|-------------|
-| `yq_text` | Insert text |
-| `yq_leader` | Leader line with text |
-| `yq_drawingtitle` | Drawing title block |
-| `yq_section_symbol` | Section cut symbol |
-| `yq_elevation_marker` | Elevation level marker |
-| `yq_entrance_arrow` | Entrance arrow |
-
-</details>
-
-### Generic Tools (2)
-
-| Tool | Description |
-|------|-------------|
-| `yq_execute` | Execute **any** of the 684 architectural commands by name |
-| `yq_list_commands` | Search and browse all 684 commands by category or keyword |
-
----
-
-## Architecture
-
-```
-autocad-mcp/
-├── src/
-│   ├── index.ts              # MCP server entry point (55 tools)
-│   ├── ipc.ts                # File-based IPC (atomic write, poll, cleanup)
-│   ├── commands.ts           # Registry of all 684 commands in 22 categories
-│   └── tools/
-│       ├── walls.ts          # Wall operations (8 tools)
-│       ├── columns.ts        # Column operations (6 tools)
-│       ├── doors.ts          # Door & window operations (6 tools)
-│       ├── stairs.ts         # Stair operations (6 tools)
-│       ├── dimensions.ts     # Dimension & grid operations (8 tools)
-│       ├── layers.ts         # Layer management (9 tools)
-│       ├── hatching.ts       # Hatching & materials (4 tools)
-│       ├── annotations.ts    # Text, symbols & annotations (6 tools)
-│       └── execute.ts        # Generic execute + list commands (2 tools)
-├── lisp/
-│   └── acad_mcp_bridge.lsp   # AutoCAD LISP bridge (generic dispatcher)
-├── dist/                     # Compiled JavaScript (ready to run)
-├── package.json
-└── tsconfig.json
-```
-
-### IPC Protocol
-
-| Step | File | Direction |
-|------|------|-----------|
-| 1. Request | `C:\temp\acad_mcp_cmd_{id}.json` | Node.js -> LISP |
-| 2. Response | `C:\temp\acad_mcp_result_{id}.json` | LISP -> Node.js |
-
-All writes are atomic (`.tmp` + rename). Files are cleaned up after each command.
-
----
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ACAD_MCP_IPC_DIR` | `C:/temp` | IPC directory for command/result files |
-| `ACAD_MCP_IPC_TIMEOUT` | `15000` | Timeout in ms for LISP response |
-| `ACAD_LICENSE_KEY` | -- | License key (bypasses trial) |
+> "Draw a 3-bedroom apartment with 200mm walls, doors, windows and auto-dimensions."
 
 ---
 
 ## Pricing
 
 <p align="center">
-  <img src="https://img.shields.io/badge/24h_Free_Trial-Try_Now-brightgreen?style=for-the-badge" alt="Free Trial">
+  <img src="https://img.shields.io/badge/24h_Free_Trial-brightgreen?style=for-the-badge" alt="Free Trial">
 </p>
 
-autocad-mcp includes a **24-hour free trial** with full access to all 684 commands. After the trial, a license key is required.
+| Plan | Price | Duration |
+|------|-------|----------|
+| **Free Trial** | Free | 24 hours |
+| **Monthly** | $9.99/mo | 30 days |
+| **Yearly** | $79.99/yr | 365 days (save 33%) |
 
-| Plan | Price | Duration | What you get |
-|------|-------|----------|-------------|
-| **Free Trial** | Free | 24 hours | All 684 commands, all 55 tools |
-| **Monthly** | $9.99/mo | 30 days | All features, 1 machine |
-| **Yearly** | $79.99/yr | 365 days | All features, 1 machine (save 33%) |
-| **Enterprise** | Contact us | Custom | Multiple machines, priority support |
+### Get a license
 
-### How to get a license
-
-1. Run `node dist/index.js --license` to get your **Machine ID**
-2. Contact me with your **Machine ID** and desired plan (monthly or yearly):
+Contact me with your desired plan. You'll receive a key that activates automatically on your machine — no setup, no device IDs.
 
 <p align="center">
   <a href="https://t.me/plxarized">
@@ -311,37 +123,63 @@ autocad-mcp includes a **24-hour free trial** with full access to all 684 comman
     <img src="https://img.shields.io/badge/LinkedIn-Mohamed_Amine-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
   </a>
   &nbsp;
-  <a href="https://github.com/xstaar/autocad-mcp/issues">
-    <img src="https://img.shields.io/badge/GitHub-Open_Issue-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Issues">
+  <a href="mailto:haddach.omteq@gmail.com">
+    <img src="https://img.shields.io/badge/Email-haddach.omteq-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email">
   </a>
 </p>
 
-3. You will receive a license key tied to your machine (format: `ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX`)
+**Accepted payments:** PayPal ([paypal.me/haddachdev](https://www.paypal.com/paypalme/haddachdev)) and cryptocurrency.
 
-### Activate your license
+### Activate
 
 ```bash
-# Get your Machine ID
-node dist/index.js --license
-
-# Option 1: Environment variable
-set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX
-
-# Option 2: Save to file
-echo ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX > %USERPROFILE%\.autocad-mcp-license
+set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXX
 ```
 
-### Key renewal
+That's it. The key locks to your machine on first use. One key = one machine.
 
-License keys expire after the subscription period (monthly or yearly). When your key expires, reach out on [Telegram](https://t.me/plxarized) or [LinkedIn](https://www.linkedin.com/in/mohamedaminehaddach) for a renewal key. The server will notify you when your key is about to expire.
+---
+
+## How licensing works
+
+```
+┌──────────┐      key + fingerprint      ┌───────────────────┐
+│  Your PC │  ────────────────────────►  │ Activation Server │
+│          │  ◄────────────────────────  │ (Netlify)         │
+│          │      signed token            │                   │
+└──────────┘                             └───────────────────┘
+     │                                          │
+     │  Token stored locally                    │  Key bound to
+     │  for offline use                         │  your machine
+     ▼                                          ▼
+  Works offline                           Can't reuse on
+  after activation                        another device
+```
+
+- **First launch**: Key is sent to the activation server with your machine fingerprint
+- **Server binds** the key to your machine and returns a signed token
+- **After activation**: Everything works offline — no internet needed
+- **Another machine?** Server rejects it. One key = one machine. No exceptions.
+
+The activation server is the single source of truth. Even with full access to this code, valid license tokens **cannot** be generated without the server's signing key.
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `ACAD_LICENSE_KEY` | Your license key |
+| `ACAD_MCP_IPC_DIR` | IPC directory (default: `C:/temp`) |
+| `ACAD_MCP_IPC_TIMEOUT` | LISP response timeout in ms (default: `15000`) |
 
 ---
 
 ## License
 
-Proprietary - All Rights Reserved
+Proprietary Software - All Rights Reserved
 
-Copyright 2026 Mohamed Amine Haddach. This software is licensed, not sold. Unauthorized copying, redistribution, modification, or reverse engineering is strictly prohibited. A valid license key is required for use beyond the 24-hour trial.
+Copyright 2026 Mohamed Amine Haddach. The source code is provided for transparency. A valid license key and activation are required for use beyond the trial period. Unauthorized redistribution, modification for license bypass, or reverse engineering of the activation system is prohibited.
 
 ---
 

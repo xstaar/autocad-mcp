@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>autocad-mcp - AI-Powered AutoCAD Architectural Tools</title>
+  <title>autocad-mcp - AI-Powered AutoCAD Architectural Design</title>
   <link rel="stylesheet" href="css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Header -->
   <header>
     <nav>
       <div class="logo">autocad-mcp</div>
@@ -32,7 +31,7 @@
         <span class="badge">AutoCAD 2000+</span>
         <span class="badge">24h Free Trial</span>
       </div>
-      <a href="#pricing" class="btn btn-primary">Get Started</a>
+      <a href="#pricing" class="btn btn-primary">Get a License</a>
     </div>
   </section>
 
@@ -90,22 +89,22 @@
       <div class="step">
         <div class="step-number">1</div>
         <h3>Install</h3>
-        <p>Clone the repo, run npm install, load the LISP bridge in AutoCAD.</p>
+        <p>Clone the repo, run npm install && npm run build. Load the LISP bridge in AutoCAD.</p>
       </div>
       <div class="step">
         <div class="step-number">2</div>
-        <h3>Connect</h3>
+        <h3>Configure</h3>
         <p>Add autocad-mcp to your Claude Desktop config. It connects via MCP protocol.</p>
       </div>
       <div class="step">
         <div class="step-number">3</div>
-        <h3>Talk to Claude</h3>
-        <p>"Draw a 3-bedroom apartment with 200mm walls, doors, windows, and auto-dimensions."</p>
+        <h3>Activate</h3>
+        <p>Set your license key. It auto-binds to your machine on first launch &mdash; no setup needed.</p>
       </div>
       <div class="step">
         <div class="step-number">4</div>
-        <h3>Done</h3>
-        <p>Claude executes the commands in AutoCAD. Your drawing is ready.</p>
+        <h3>Draw</h3>
+        <p>Tell Claude what to draw. It handles the rest in AutoCAD.</p>
       </div>
     </div>
   </section>
@@ -122,13 +121,10 @@
         <ul class="plan-features">
           <li>All 684 commands</li>
           <li>All 55 MCP tools</li>
-          <li>1 machine</li>
-          <li>30-day license key</li>
-          <li>Email support</li>
+          <li>1 machine per key</li>
+          <li>30-day license</li>
         </ul>
-        <button class="btn btn-primary btn-buy" data-plan="monthly" disabled>
-          Buy Monthly License
-        </button>
+        <a href="https://t.me/plxarized" class="btn btn-primary btn-buy">Contact to Purchase</a>
       </div>
 
       <div class="pricing-card popular">
@@ -138,27 +134,34 @@
         <ul class="plan-features">
           <li>All 684 commands</li>
           <li>All 55 MCP tools</li>
-          <li>1 machine</li>
-          <li>365-day license key</li>
-          <li>Priority support</li>
+          <li>1 machine per key</li>
+          <li>365-day license</li>
           <li>Save 33%</li>
         </ul>
-        <button class="btn btn-primary btn-buy" data-plan="yearly" disabled>
-          Buy Yearly License
-        </button>
+        <a href="https://t.me/plxarized" class="btn btn-primary btn-buy">Contact to Purchase</a>
       </div>
     </div>
 
-    <!-- Machine ID input -->
+    <!-- Contact section -->
     <div class="machine-id-section">
-      <h3>Enter your Machine ID to purchase</h3>
-      <p>Run <code>node dist/index.js --license</code> to get your Machine ID</p>
-      <div class="machine-id-input">
-        <input type="text" id="machineId" placeholder="e.g. 6409a367862ae812f6b4e472" maxlength="24" pattern="[a-f0-9]{24}">
-        <button id="validateMachineId" class="btn btn-secondary">Validate</button>
+      <h3>How to get a license</h3>
+      <div class="contact-methods">
+        <a href="https://t.me/plxarized" class="contact-link">
+          <span class="contact-icon">&#9993;</span>
+          <span>Telegram @plxarized</span>
+        </a>
+        <a href="https://www.linkedin.com/in/mohamedaminehaddach" class="contact-link">
+          <span class="contact-icon">&#128279;</span>
+          <span>LinkedIn</span>
+        </a>
+        <a href="mailto:haddach.omteq@gmail.com" class="contact-link">
+          <span class="contact-icon">&#9993;</span>
+          <span>haddach.omteq@gmail.com</span>
+        </a>
       </div>
-      <p id="machineIdError" class="error-text" style="display:none;"></p>
-      <p id="machineIdSuccess" class="success-text" style="display:none;">Machine ID validated. Select a plan above.</p>
+      <p style="margin-top:1.5rem;">Once you receive your key, just set it and restart:</p>
+      <code style="display:block;background:var(--bg);padding:0.75rem 1rem;border-radius:8px;margin-top:0.5rem;color:var(--primary-light);font-size:0.9rem;">set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXX</code>
+      <p style="margin-top:0.75rem;color:var(--text-muted);font-size:0.85rem;">Your key automatically locks to your machine on first use. No device ID or setup needed.</p>
     </div>
   </section>
 
@@ -167,24 +170,24 @@
     <h2>Frequently Asked Questions</h2>
     <div class="faq-list">
       <div class="faq-item">
-        <h3>What is a Machine ID?</h3>
-        <p>A unique fingerprint of your computer. Run <code>node dist/index.js --license</code> to get it. It ensures your license key works only on your machine.</p>
+        <h3>How does the license work?</h3>
+        <p>Set your license key as an environment variable. On first launch, it automatically activates and binds to your machine. No extra steps needed.</p>
       </div>
       <div class="faq-item">
-        <h3>How do I receive my license key?</h3>
-        <p>Instantly after payment. The key is shown on the confirmation page and included in your email receipt.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Can I transfer my license to another machine?</h3>
-        <p>License keys are tied to a specific machine. Contact support if you need to transfer.</p>
+        <h3>Can I use one key on multiple machines?</h3>
+        <p>No. Each key locks to the first machine it's activated on. If you need multiple machines, you'll need multiple keys.</p>
       </div>
       <div class="faq-item">
         <h3>What happens when my license expires?</h3>
-        <p>The tools will stop working until you renew. Your AutoCAD drawings are unaffected.</p>
+        <p>The tools stop working until you renew. Your AutoCAD drawings are never affected.</p>
       </div>
       <div class="faq-item">
-        <h3>Do you offer refunds?</h3>
-        <p>We offer a 24-hour free trial so you can test before buying. All sales are final.</p>
+        <h3>Is the code open source?</h3>
+        <p>The code is viewable for transparency, but a valid license key is required. Keys are validated through our activation server &mdash; they cannot be generated or bypassed locally.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What payment methods do you accept?</h3>
+        <p>PayPal and cryptocurrency (BTC, ETH, LTC, SOL, USDT, and more). Contact us for details.</p>
       </div>
     </div>
   </section>
@@ -200,20 +203,17 @@
         <h4>Contact</h4>
         <a href="https://t.me/plxarized">Telegram @plxarized</a>
         <a href="https://www.linkedin.com/in/mohamedaminehaddach">LinkedIn</a>
-        <a href="https://github.com/xstaar">GitHub</a>
+        <a href="mailto:haddach.omteq@gmail.com">Email</a>
       </div>
       <div class="footer-links">
-        <h4>Legal</h4>
-        <a href="#pricing">Pricing</a>
-        <a href="#faq">FAQ</a>
+        <h4>Payments</h4>
+        <a href="https://www.paypal.com/paypalme/haddachdev">PayPal</a>
+        <a href="#faq">Crypto accepted</a>
       </div>
     </div>
     <div class="footer-bottom">
       <p>Copyright 2026 Mohamed Amine Haddach. All rights reserved.</p>
     </div>
   </footer>
-
-  <script src="https://js.stripe.com/v3/"></script>
-  <script src="js/main.js"></script>
 </body>
 </html>

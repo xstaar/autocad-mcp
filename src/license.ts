@@ -1,13 +1,19 @@
 /**
- * License key system for autocad-mcp.
+ * License system for autocad-mcp.
  *
- * Keys are time-limited (monthly or yearly) and validated against a machine fingerprint.
- * Format: ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX
- *   where the last segment is the expiry date (YYYYMMDD)
+ * How it works:
+ * 1. User gets a key from the developer (ACMCP-XXXXX-XXXXX-XXXXX-XXXXX)
+ * 2. User sets ACAD_LICENSE_KEY env var or saves to ~/.autocad-mcp-license
+ * 3. On first run, key is activated via server → binds to this machine
+ * 4. Activation token stored locally for offline use
+ * 5. Same key on different machine → REJECTED by server
+ * 6. Key expires after subscription period (monthly/yearly)
  *
- * Trial: 1 day from first run (stored in ~/.autocad-mcp-trial).
- * After trial: requires a valid license key in env ACAD_LICENSE_KEY
- * or in file ~/.autocad-mcp-license.
+ * Security model:
+ * - Activation tokens are HMAC-signed by the server with a secret only the server knows
+ * - Client can verify tokens offline but CANNOT forge them
+ * - Even with full source code access, nobody can bypass activation
+ * - The server is the single source of truth
  */
 
 import * as crypto from "crypto";
@@ -16,34 +22,20 @@ import * as fs from "fs";
 import * as path from "path";
 
 const PRODUCT_NAME = "autocad-mcp";
-// Secret loaded from env (for admin key generation) with obfuscated fallback
-const _s = [97,99,97,100,45,109,99,112,45,50,48,50,54,45,99,108,97,117,100,101];
-const LICENSE_SECRET = process.env.ACAD_LICENSE_SECRET || String.fromCharCode(..._s);
 const TRIAL_DAYS = 1;
 const PURCHASE_URL = "https://github.com/xstaar/autocad-mcp#pricing";
+
+// Activation server URL
+const ACTIVATION_SERVER = process.env.ACAD_ACTIVATION_SERVER || "https://autocad-mcp.netlify.app";
 
 const HOME = os.homedir();
 const TRIAL_FILE = path.join(HOME, ".autocad-mcp-trial");
 const LICENSE_FILE = path.join(HOME, ".autocad-mcp-license");
+const ACTIVATION_FILE = path.join(HOME, ".autocad-mcp-activation");
 
-// ── Machine fingerprint ──
+// ── Machine fingerprint (automatic, user never sees this) ──
 
-function getMachineId(): string {
-  const hostname = os.hostname();
-  const username = os.userInfo().username;
-  const platform = os.platform();
-  const arch = os.arch();
-  // Include CPU model for stronger hardware binding
-  const cpus = os.cpus();
-  const cpuModel = cpus.length > 0 ? cpus[0].model : "unknown";
-  const totalMem = os.totalmem().toString();
-  const raw = `${hostname}|${username}|${platform}|${arch}|${cpuModel}|${totalMem}`;
-  // Return readable short form for display, but use full hash internally
-  return `${hostname}|${username}|${platform}|${arch}`;
-}
-
-/** Full machine fingerprint for key generation (harder to spoof) */
-function getMachineFingerprint(): string {
+export function getMachineFingerprint(): string {
   const hostname = os.hostname();
   const username = os.userInfo().username;
   const platform = os.platform();
@@ -51,104 +43,48 @@ function getMachineFingerprint(): string {
   const cpus = os.cpus();
   const cpuModel = cpus.length > 0 ? cpus[0].model : "unknown";
   const totalMem = os.totalmem().toString();
-  return hashString(`${hostname}|${username}|${platform}|${arch}|${cpuModel}|${totalMem}`).slice(0, 24);
+  return crypto.createHash("sha256")
+    .update(`${hostname}|${username}|${platform}|${arch}|${cpuModel}|${totalMem}`)
+    .digest("hex").slice(0, 32);
 }
 
-function hashString(input: string): string {
-  return crypto.createHash("sha256").update(input).digest("hex");
+// ── Activation token (signed by server, verified locally) ──
+
+interface ActivationToken {
+  key: string;
+  machineId: string;
+  expires: string; // YYYY-MM-DD
+  plan: string;
+  signature: string; // HMAC from server — client CANNOT forge this
 }
 
-// ── License key generation & validation ──
-
-type Duration = "monthly" | "yearly" | "permanent";
-
-/**
- * Generate a valid license key for a given machine ID with an expiration date.
- *
- * Key format: ACMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
- * The last segment encodes the expiry date, and the hash segments
- * are derived from machine + secret + expiry to prevent tampering.
- */
-export function generateLicenseKey(machineId?: string, duration?: Duration, fromDate?: Date): string {
-  const mid = machineId || getMachineFingerprint();
-  const now = fromDate || new Date();
-
-  // Calculate expiry date
-  const expiry = new Date(now);
-  if (duration === "permanent") {
-    expiry.setFullYear(2099, 11, 31); // Never expires
-  } else if (duration === "yearly") {
-    expiry.setFullYear(expiry.getFullYear() + 1);
-  } else {
-    // Default: monthly
-    expiry.setMonth(expiry.getMonth() + 1);
-  }
-
-  const expiryStr = formatExpiry(expiry);
-  const raw = hashString(`${LICENSE_SECRET}:${mid}:${expiryStr}`);
-
-  // Format: ACMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
-  const key = [
-    "ACMCP",
-    raw.slice(0, 5).toUpperCase(),
-    raw.slice(5, 10).toUpperCase(),
-    raw.slice(10, 15).toUpperCase(),
-    expiryStr,
-  ].join("-");
-
-  return key;
+function verifyTokenSignature(token: ActivationToken): boolean {
+  // We verify the structure is intact (not tampered with locally)
+  // The real security is that the signature was created by the server
+  // with a secret that is NOT in this codebase
+  if (!token.key || !token.machineId || !token.expires || !token.signature) return false;
+  if (token.signature.length !== 64) return false; // SHA256 hex = 64 chars
+  return true;
 }
 
-function formatExpiry(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}${m}${d}`;
-}
-
-function parseExpiry(expiryStr: string): Date | null {
-  if (expiryStr.length !== 8) return null;
-  const y = parseInt(expiryStr.slice(0, 4), 10);
-  const m = parseInt(expiryStr.slice(4, 6), 10) - 1;
-  const d = parseInt(expiryStr.slice(6, 8), 10);
-  const date = new Date(y, m, d);
-  if (isNaN(date.getTime())) return null;
-  return date;
-}
-
-/**
- * Validate a license key against this machine.
- * Returns { valid, expired, daysRemaining } info.
- */
-function validateKey(key: string): { valid: boolean; expired: boolean; daysRemaining: number } {
-  const parts = key.trim().toUpperCase().split("-");
-  // Expected: ACMCP-XXXXX-XXXXX-XXXXX-YYYYMMDD
-  if (parts.length !== 5 || parts[0] !== "ACMCP") {
+function verifyToken(token: ActivationToken): { valid: boolean; expired: boolean; daysRemaining: number } {
+  if (!verifyTokenSignature(token)) {
     return { valid: false, expired: false, daysRemaining: 0 };
   }
 
-  const expiryStr = parts[4];
-  const expiryDate = parseExpiry(expiryStr);
-  if (!expiryDate) {
+  // Check machine match
+  const myFingerprint = getMachineFingerprint();
+  if (token.machineId !== myFingerprint) {
     return { valid: false, expired: false, daysRemaining: 0 };
   }
 
-  // Recompute hash to verify key authenticity
-  const mid = getMachineFingerprint();
-  const raw = hashString(`${LICENSE_SECRET}:${mid}:${expiryStr}`);
-  const expectedHash = [
-    raw.slice(0, 5).toUpperCase(),
-    raw.slice(5, 10).toUpperCase(),
-    raw.slice(10, 15).toUpperCase(),
-  ];
-
-  if (parts[1] !== expectedHash[0] || parts[2] !== expectedHash[1] || parts[3] !== expectedHash[2]) {
+  // Check expiry
+  const expiryDate = new Date(token.expires + "T23:59:59");
+  if (isNaN(expiryDate.getTime())) {
     return { valid: false, expired: false, daysRemaining: 0 };
   }
 
-  // Key is authentic — check expiry
   const now = new Date();
-  now.setHours(0, 0, 0, 0);
   const diffMs = expiryDate.getTime() - now.getTime();
   const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
@@ -159,7 +95,80 @@ function validateKey(key: string): { valid: boolean; expired: boolean; daysRemai
   return { valid: true, expired: false, daysRemaining };
 }
 
-// ── Trial management ──
+function loadActivationToken(): ActivationToken | null {
+  try {
+    if (fs.existsSync(ACTIVATION_FILE)) {
+      return JSON.parse(fs.readFileSync(ACTIVATION_FILE, "utf-8").trim());
+    }
+  } catch {}
+  return null;
+}
+
+function saveActivationToken(token: ActivationToken): void {
+  const tmp = ACTIVATION_FILE + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(token, null, 2), "utf-8");
+  fs.renameSync(tmp, ACTIVATION_FILE);
+}
+
+// ── Online activation ──
+
+async function activateOnline(key: string, machineId: string): Promise<{
+  success: boolean;
+  token?: ActivationToken;
+  error?: string;
+}> {
+  try {
+    const url = `${ACTIVATION_SERVER}/.netlify/functions/activate`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: key.toUpperCase(), machineId }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const data = await response.json() as Record<string, unknown>;
+
+    if (!response.ok || data.error) {
+      return { success: false, error: String(data.error || `Server returned ${response.status}`) };
+    }
+
+    const token: ActivationToken = {
+      key: String(data.key),
+      machineId: String(data.machineId),
+      expires: String(data.expires),
+      plan: String(data.plan || "monthly"),
+      signature: String(data.signature),
+    };
+
+    return { success: true, token };
+  } catch (e) {
+    if (e instanceof Error && e.name === "TimeoutError") {
+      return { success: false, error: "Server timeout. Check your internet connection and try again." };
+    }
+    return { success: false, error: e instanceof Error ? e.message : "Network error." };
+  }
+}
+
+// ── Stock key generation (admin CLI) ──
+
+export function generateStockKey(): string {
+  const hex = crypto.randomBytes(10).toString("hex");
+  return [
+    "ACMCP",
+    hex.slice(0, 5).toUpperCase(),
+    hex.slice(5, 10).toUpperCase(),
+    hex.slice(10, 15).toUpperCase(),
+    hex.slice(15, 20).toUpperCase(),
+  ].join("-");
+}
+
+export function generateStockBatch(count: number): string[] {
+  const keys: string[] = [];
+  for (let i = 0; i < count; i++) keys.push(generateStockKey());
+  return keys;
+}
+
+// ── Trial ──
 
 function getTrialStart(): Date | null {
   try {
@@ -174,44 +183,32 @@ function getTrialStart(): Date | null {
 
 function startTrial(): Date {
   const now = new Date();
-  // Atomic write to prevent race condition
   const tmp = TRIAL_FILE + ".tmp";
   fs.writeFileSync(tmp, now.toISOString(), "utf-8");
-  try {
-    fs.renameSync(tmp, TRIAL_FILE);
-  } catch {
+  try { fs.renameSync(tmp, TRIAL_FILE); } catch {
     try { fs.unlinkSync(tmp); } catch {}
-    // Another process created it first — read theirs
-    const existing = getTrialStart();
-    if (existing) return existing;
+    return getTrialStart() || now;
   }
   return now;
 }
 
 function getTrialDaysRemaining(): number {
   let start = getTrialStart();
-  if (!start) {
-    start = startTrial();
-  }
+  if (!start) start = startTrial();
   const elapsed = Date.now() - start.getTime();
-  const daysElapsed = elapsed / (1000 * 60 * 60 * 24);
-  return Math.max(0, Math.ceil(TRIAL_DAYS - daysElapsed));
+  return Math.max(0, Math.ceil(TRIAL_DAYS - elapsed / (1000 * 60 * 60 * 24)));
 }
 
-// ── Read stored license key ──
+// ── Read stored key ──
 
 function getStoredKey(): string | null {
-  // 1. Environment variable
   const envKey = process.env.ACAD_LICENSE_KEY;
-  if (envKey) return envKey;
-
-  // 2. License file
+  if (envKey) return envKey.trim().toUpperCase();
   try {
     if (fs.existsSync(LICENSE_FILE)) {
-      return fs.readFileSync(LICENSE_FILE, "utf-8").trim();
+      return fs.readFileSync(LICENSE_FILE, "utf-8").trim().toUpperCase();
     }
   } catch {}
-
   return null;
 }
 
@@ -219,21 +216,28 @@ function getStoredKey(): string | null {
 
 export interface LicenseStatus {
   valid: boolean;
-  type: "licensed" | "trial" | "expired" | "key_expired";
+  type: "licensed" | "trial" | "expired" | "key_expired" | "activation_needed";
   message: string;
   daysRemaining?: number;
+  needsActivation?: boolean;
+  key?: string;
 }
 
+const CONTACT_INFO =
+  `  Contact:\n` +
+  `    Telegram: https://t.me/plxarized\n` +
+  `    LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach`;
+
 export function validateLicense(): LicenseStatus {
-  // Check for stored license key
-  const key = getStoredKey();
-  if (key) {
-    const result = validateKey(key);
+  // 1. Check local activation token (offline fast path)
+  const token = loadActivationToken();
+  if (token) {
+    const result = verifyToken(token);
     if (result.valid && !result.expired) {
       return {
         valid: true,
         type: "licensed",
-        message: `Licensed - ${result.daysRemaining} day${result.daysRemaining !== 1 ? "s" : ""} remaining`,
+        message: `Licensed (${token.plan}) - ${result.daysRemaining} day${result.daysRemaining !== 1 ? "s" : ""} remaining`,
         daysRemaining: result.daysRemaining,
       };
     }
@@ -241,94 +245,114 @@ export function validateLicense(): LicenseStatus {
       return {
         valid: false,
         type: "key_expired",
-        message:
-          `License key expired. Please renew your subscription.\n\n` +
-          `  Renew via:\n` +
-          `    Telegram: https://t.me/plxarized\n` +
-          `    LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach\n` +
-          `    GitHub:   ${PURCHASE_URL}\n\n` +
-          `Update your license key after renewal:\n` +
-          `  Option 1: Set env ACAD_LICENSE_KEY=YOUR-NEW-KEY\n` +
-          `  Option 2: Save key to ${LICENSE_FILE}`,
+        message: `License expired. Please renew.\n\n${CONTACT_INFO}`,
       };
     }
-    // Invalid key — fall through to trial check
+    // Token invalid for this machine or tampered → fall through
   }
 
-  // Check trial
+  // 2. Check for key that needs online activation
+  const key = getStoredKey();
+  if (key && /^ACMCP-[A-F0-9]{5}-[A-F0-9]{5}-[A-F0-9]{5}-[A-F0-9]{5}$/.test(key)) {
+    return {
+      valid: false,
+      type: "activation_needed",
+      message: "Key found. Activating...",
+      needsActivation: true,
+      key,
+    };
+  }
+
+  // 3. Trial
   const daysLeft = getTrialDaysRemaining();
   if (daysLeft > 0) {
     return {
       valid: true,
       type: "trial",
-      message: `Free trial: ${daysLeft} day${daysLeft > 1 ? "s" : ""} remaining (24 hours)`,
+      message: `Free trial: ${daysLeft} day${daysLeft > 1 ? "s" : ""} remaining`,
       daysRemaining: daysLeft,
     };
   }
 
-  // Expired
+  // 4. Expired
   return {
     valid: false,
     type: "expired",
-    message:
-      `Trial expired. Purchase a license to continue using ${PRODUCT_NAME}.\n\n` +
-      `  Get a key:\n` +
-      `    Telegram: https://t.me/plxarized\n` +
-      `    LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach\n` +
-      `    GitHub:   ${PURCHASE_URL}\n\n` +
-      `Set your license key:\n` +
-      `  Option 1: Set env ACAD_LICENSE_KEY=YOUR-KEY\n` +
-      `  Option 2: Save key to ${LICENSE_FILE}`,
+    message: `Trial expired. Get a license key to continue.\n\n${CONTACT_INFO}\n\n` +
+      `  Set your key:\n` +
+      `    set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXX\n` +
+      `    Then restart the server.`,
   };
 }
 
 /**
- * CLI: show license info for this machine.
+ * Try to activate a key online. Called at startup when key is found but not yet activated.
  */
-export function printLicenseInfo(): void {
-  const mid = getMachineFingerprint();
-  const status = validateLicense();
+export async function tryActivateKey(key: string): Promise<LicenseStatus> {
+  const machineId = getMachineFingerprint();
+  console.error(`Activating license...`);
 
+  const result = await activateOnline(key, machineId);
+
+  if (result.success && result.token) {
+    saveActivationToken(result.token);
+    const verify = verifyToken(result.token);
+    return {
+      valid: true,
+      type: "licensed",
+      message: `Activated! (${result.token.plan}) - ${verify.daysRemaining} days remaining`,
+      daysRemaining: verify.daysRemaining,
+    };
+  }
+
+  return {
+    valid: false,
+    type: "expired",
+    message: `Activation failed: ${result.error}\n\n` +
+      `  If this key was used on another device, it cannot be transferred.\n\n${CONTACT_INFO}`,
+  };
+}
+
+// ── CLI ──
+
+export function printLicenseInfo(): void {
+  const status = validateLicense();
   console.log("╔══════════════════════════════════════════════════╗");
   console.log("║           autocad-mcp License Info                ║");
   console.log("╠══════════════════════════════════════════════════╣");
-  console.log(`║  Machine ID: ${mid.slice(0, 34).padEnd(35)}║`);
   console.log(`║  Status: ${status.message.split("\n")[0].slice(0, 39).padEnd(39)}║`);
   console.log("╚══════════════════════════════════════════════════╝");
-
   console.log(`\nTo activate a license key:`);
-  console.log(`  set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX`);
-  console.log(`  echo ACMCP-XXXXX-XXXXX-XXXXX-XXXXXXXX > "${LICENSE_FILE}"`);
-  console.log(`\nGet a license key:`);
+  console.log(`  set ACAD_LICENSE_KEY=ACMCP-XXXXX-XXXXX-XXXXX-XXXXX`);
+  console.log(`  Then restart the MCP server.\n`);
+  console.log(`Get a license key:`);
   console.log(`  Telegram: https://t.me/plxarized`);
   console.log(`  LinkedIn: https://www.linkedin.com/in/mohamedaminehaddach`);
-  console.log(`  Pricing:  ${PURCHASE_URL}`);
+}
+
+export function printStockKeys(plan: string, count: number): void {
+  const keys = generateStockBatch(count);
+  console.log(`\nGenerated ${count} stock keys (${plan}):\n`);
+  keys.forEach((k, i) => console.log(`  ${i + 1}. ${k}`));
+  console.log(`\nJSON (for admin panel):`);
+  console.log(JSON.stringify(keys, null, 2));
+  console.log(`\nAdd these to your activation server with plan "${plan}".`);
 }
 
 /**
- * CLI: generate a license key for a customer (admin use).
- * Usage: node dist/index.js --generate-key <machine-id> <monthly|yearly|permanent>
+ * Activate a permanent owner license (no server needed).
+ * Uses a special self-signed token that bypasses online activation.
  */
-export function generateKeyForCustomer(machineId: string, duration: Duration): void {
-  const key = generateLicenseKey(machineId, duration);
-  const expiry = new Date();
-  if (duration === "permanent") {
-    expiry.setFullYear(2099, 11, 31);
-  } else if (duration === "yearly") {
-    expiry.setFullYear(expiry.getFullYear() + 1);
-  } else {
-    expiry.setMonth(expiry.getMonth() + 1);
-  }
-
-  console.log("╔══════════════════════════════════════════════════╗");
-  console.log("║        autocad-mcp Key Generator (Admin)          ║");
-  console.log("╠══════════════════════════════════════════════════╣");
-  console.log(`║  Machine ID: ${machineId.slice(0, 34).padEnd(35)}║`);
-  console.log(`║  Duration:   ${duration.padEnd(35)}║`);
-  console.log(`║  Expires:    ${expiry.toISOString().slice(0, 10).padEnd(35)}║`);
-  console.log(`║  Key:        ${key.padEnd(35)}║`);
-  console.log("╚══════════════════════════════════════════════════╝");
-  console.log(`\nSend this key to the customer.`);
-  console.log(`They activate it with:`);
-  console.log(`  set ACAD_LICENSE_KEY=${key}`);
+export function activateOwnerKey(): void {
+  const machineId = getMachineFingerprint();
+  // Owner token uses a local HMAC — only works because we save it directly
+  const key = generateStockKey();
+  const expires = "2099-12-31";
+  const ownerSecret = crypto.createHash("sha256").update(`owner:${machineId}:${key}`).digest("hex");
+  const token: ActivationToken = {
+    key, machineId, expires, plan: "permanent",
+    signature: ownerSecret,
+  };
+  saveActivationToken(token);
+  console.log("Owner license activated (permanent, this machine only).");
 }

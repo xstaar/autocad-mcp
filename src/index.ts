@@ -13,7 +13,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { IpcResponse } from "./ipc.js";
-import { validateLicense, printLicenseInfo, generateKeyForCustomer, LicenseStatus } from "./license.js";
+import { validateLicense, printLicenseInfo, printStockKeys, activateOwnerKey, tryActivateKey, LicenseStatus } from "./license.js";
 
 // ── License check (runs on every tool call) ──
 let licenseStatus: LicenseStatus;
@@ -238,30 +238,40 @@ async function main() {
     process.exit(0);
   }
 
-  // Handle --generate-key for admin key generation
-  const genIdx = process.argv.indexOf("--generate-key");
-  if (genIdx !== -1) {
-    const machineId = process.argv[genIdx + 1];
-    const duration = (process.argv[genIdx + 2] || "monthly") as "monthly" | "yearly" | "permanent";
-    if (!machineId) {
-      console.error("Usage: node dist/index.js --generate-key <machine-id> [monthly|yearly|permanent]");
-      console.error("  machine-id: The customer's Machine ID (from --license output)");
-      console.error("  duration:   monthly (default), yearly, or permanent (owner use)");
+  // Handle --generate-stock for batch key generation
+  const stockIdx = process.argv.indexOf("--generate-stock");
+  if (stockIdx !== -1) {
+    const plan = (process.argv[stockIdx + 1] || "monthly") as "monthly" | "yearly" | "permanent";
+    const count = parseInt(process.argv[stockIdx + 2] || "10", 10);
+    printStockKeys(plan, count);
+    process.exit(0);
+  }
+
+  // Handle --owner to activate permanent owner license (requires ACAD_OWNER_KEY env var)
+  if (process.argv.includes("--owner")) {
+    if (!process.env.ACAD_OWNER_KEY) {
+      console.error("Owner activation requires ACAD_OWNER_KEY environment variable.");
       process.exit(1);
     }
-    generateKeyForCustomer(machineId, duration);
+    activateOwnerKey();
     process.exit(0);
   }
 
   // Validate license on startup
   licenseStatus = validateLicense();
   console.error(`autocad-mcp v2.0.0 — 684 commands, 55 MCP tools`);
-  console.error(`License: ${licenseStatus.message}`);
+
+  // If key needs activation, try it now
+  if (licenseStatus.needsActivation && licenseStatus.key) {
+    licenseStatus = await tryActivateKey(licenseStatus.key);
+  }
+
+  console.error(`License: ${licenseStatus.message.split("\n")[0]}`);
 
   if (!licenseStatus.valid) {
     console.error("\n" + licenseStatus.message);
     console.error("Server will start but all tools will require a license.");
-    console.error('Run with --license flag to get your license key.\n');
+    console.error('Run with --license flag for info.\n');
   }
 
   const transport = new StdioServerTransport();
