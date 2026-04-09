@@ -1,0 +1,359 @@
+================================================================================
+  AUTOCAD-MCP  —  OWNER SETUP & USAGE GUIDE (A to Z)
+================================================================================
+
+This guide covers everything you need to get autocad-mcp working on YOUR
+machine as the owner, with a permanent license that never expires.
+
+
+================================================================================
+  PREREQUISITES
+================================================================================
+
+You need these installed:
+
+  1. Node.js (v18+)        — https://nodejs.org
+  2. AutoCAD (2000+)       — with YQArch plugin loaded
+  3. Claude Desktop App    — https://claude.ai/download
+  4. Claude Pro/Max plan   — recommended for best results
+
+
+================================================================================
+  STEP 1: INSTALL (one-time)
+================================================================================
+
+Open a terminal (CMD or PowerShell) and run:
+
+  cd "C:\Users\Admin\Desktop\Claude project\yqarch-mcp"
+  npm install
+  npm run build
+
+This compiles TypeScript and obfuscates the output in dist/.
+
+
+================================================================================
+  STEP 2: OWNER LICENSE (already done — skip unless you reinstall)
+================================================================================
+
+Your permanent owner license is already activated. It's stored at:
+
+  %USERPROFILE%\.autocad-mcp-activation
+
+To verify it works:
+
+  node dist/index.js --license
+
+You should see: "Licensed (permanent)"
+
+IF you ever need to re-activate (new machine, reinstall, etc.):
+
+  1. Set the owner secret:
+     set ACAD_OWNER_KEY=owner-secret-here
+
+  2. Run:
+     node dist/index.js --owner
+
+  3. Verify:
+     node dist/index.js --license
+
+
+================================================================================
+  STEP 3: CLAUDE DESKTOP CONFIG (already done — verify)
+================================================================================
+
+Your Claude Desktop config is at:
+
+  C:\Users\Admin\AppData\Roaming\Claude\claude_desktop_config.json
+
+It should contain this entry under "mcpServers":
+
+  "autocad-arch": {
+    "command": "C:\\Program Files\\nodejs\\node.exe",
+    "args": [
+      "C:\\Users\\Admin\\Desktop\\Claude project\\yqarch-mcp\\dist\\index.js"
+    ]
+  }
+
+This is already set up. If Claude Desktop doesn't show the tools, restart it.
+
+
+================================================================================
+  STEP 4: LOAD THE LISP BRIDGE IN AUTOCAD (every session)
+================================================================================
+
+Every time you open AutoCAD, you need to load the LISP bridge:
+
+  1. Open AutoCAD
+  2. Type APPLOAD in the command line (or go to Tools > Load Application)
+  3. Browse to:
+     C:\Users\Admin\Desktop\Claude project\yqarch-mcp\lisp\acad_mcp_bridge.lsp
+  4. Click "Load" then "Close"
+  5. In the AutoCAD command line, type: YQMCP-START
+     You should see:
+     ╔══════════════════════════════════════════╗
+     ║   AutoCAD MCP Bridge v2.0               ║
+     ║   IPC: C:/temp/acad_mcp_cmd_*.json      ║
+     ║   684 commands available                 ║
+     ╚══════════════════════════════════════════╝
+
+TIP: To auto-load on every startup, add it to AutoCAD's Startup Suite:
+  1. APPLOAD
+  2. Click "Startup Suite" (bottom right)
+  3. Add acad_mcp_bridge.lsp
+  Now it loads automatically every time you open AutoCAD.
+
+
+================================================================================
+  STEP 5: SET UP AUTO-DISPATCH (recommended)
+================================================================================
+
+The LISP bridge needs to check for incoming commands from Claude. You have
+two options:
+
+OPTION A — Manual dispatch (simple):
+  After asking Claude to do something, type in AutoCAD command line:
+    YQMCP-DISPATCH
+  This processes all pending commands.
+
+OPTION B — Auto-dispatch with timer (hands-free):
+  Paste this into AutoCAD's command line after loading the bridge:
+
+    (defun start-yqmcp-timer ()
+      (setq *yqmcp-timer*
+        (vlr-timer-reactor nil
+          '((:vlr-timer . (lambda (reactor data)
+              (c:yqmcp-dispatch)
+            ))
+          )
+        )
+      )
+      (princ "\n[acad-mcp] Auto-dispatch timer started.")
+    )
+
+  Or simply create a simple polling loop — paste in AutoCAD:
+
+    (defun c:yqmcp-auto ( / )
+      (while T
+        (c:yqmcp-dispatch)
+        (command "._DELAY" 1000)
+      )
+    )
+
+  Then type: YQMCP-AUTO
+  (Press Escape to stop it)
+
+  NOTE: The simplest approach is to just type YQMCP-DISPATCH after each
+  Claude command. Claude will tell you when to run it.
+
+
+================================================================================
+  STEP 6: USING WITH CLAUDE
+================================================================================
+
+Now everything is connected. Here's the workflow:
+
+  1. Open AutoCAD with a new or existing drawing
+  2. Make sure the LISP bridge is loaded (Step 4)
+  3. Open Claude Desktop
+  4. Start talking to Claude naturally. Examples:
+
+  -----------------------------------------------------------------------
+  YOU:  "Draw a rectangular room 5m x 4m with 20cm thick walls"
+
+  Claude will use the yq_wall tool to draw the walls.
+  Then in AutoCAD, run: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "Add a door on the south wall, 90cm wide"
+
+  Claude uses yq_door tool.
+  AutoCAD: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "Add two windows on the east wall, each 120cm wide"
+
+  Claude uses yq_window tool.
+  AutoCAD: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "Create a structural grid with axes at 3m, 5m, 3m horizontally
+         and 4m, 4m vertically"
+
+  Claude uses yq_gridaxis tool.
+  AutoCAD: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "Add rectangular columns at all grid intersections, 30x30cm"
+
+  Claude uses yq_axis_column tool.
+  AutoCAD: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "Dimension all the walls automatically"
+
+  Claude uses yq_dim_auto tool.
+  AutoCAD: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "Add a straight staircase in the corner"
+
+  Claude uses yq_staircase_plan tool.
+  AutoCAD: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "Create layers for walls, doors, windows, and columns"
+
+  Claude uses yq_layer_new multiple times.
+  AutoCAD: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "Hatch the bathroom floor with stone tile"
+
+  Claude uses yq_stonetile tool.
+  AutoCAD: YQMCP-DISPATCH
+  -----------------------------------------------------------------------
+
+  YOU:  "What commands are available for stairs?"
+
+  Claude uses yq_list_commands with category "stairs".
+  (No dispatch needed — this just returns info to Claude)
+  -----------------------------------------------------------------------
+
+
+================================================================================
+  ALL 55 AVAILABLE TOOLS
+================================================================================
+
+  WALLS (8):
+    yq_wall            — Double-line wall
+    yq_simple_wall     — Single-line wall
+    yq_areawall        — Wall from closed area
+    yq_line2wall       — Convert line to wall
+    yq_wall_chgthk     — Change wall thickness
+    yq_partitionwall   — Partition wall
+    yq_curtainwall     — Curtain wall
+    yq_doubleline      — Double line (beam/foundation)
+
+  COLUMNS (6):
+    yq_r_column        — Rectangular column
+    yq_c_column        — Circular column
+    yq_l_column        — L-shaped column
+    yq_t_column        — T-shaped column
+    yq_o_column        — Hollow column
+    yq_axis_column     — Column on grid axis
+
+  DOORS & WINDOWS (6):
+    yq_door            — Door
+    yq_window          — Window
+    yq_windowdoor      — French door / window-door
+    yq_hole_door       — Door opening
+    yq_hole_window     — Window opening
+    yq_glass_partition — Glass partition
+
+  STAIRS (6):
+    yq_staircase_plan    — Straight staircase plan
+    yq_staircase_section — Staircase section view
+    yq_arcstair_plan     — Curved staircase plan
+    yq_lift_plan         — Elevator plan
+    yq_banister          — Railing/handrail
+    yq_escalator         — Escalator
+
+  DIMENSIONS & GRIDS (8):
+    yq_dim_auto        — Auto-dimension walls/openings
+    yq_gridaxis        — Structural grid axis system
+    yq_dim_linear      — Linear dimension
+    yq_dim_aligned     — Aligned dimension
+    yq_dim_continue    — Continue dimension chain
+    yq_dim_baseline    — Baseline dimension
+    yq_auto_axis_dim   — Auto-dimension grid axes
+    yq_axisline        — Axis line
+
+  LAYERS (9):
+    yq_layer_new       — Create layer
+    yq_layer_current   — Set active layer
+    yq_layer_off       — Turn off layer
+    yq_layer_on        — Turn on layer
+    yq_layer_freeze    — Freeze layer
+    yq_layer_thaw      — Thaw layer
+    yq_layer_iso       — Isolate layer
+    yq_layer_showall   — Show all layers
+    yq_layer_rename    — Rename layer
+
+  HATCHING (4):
+    yq_hatch_quick     — Quick hatch
+    yq_insulation      — Insulation pattern
+    yq_stonetile       — Stone tile pattern
+    yq_woodflooring    — Wood flooring pattern
+
+  ANNOTATIONS (6):
+    yq_text            — Text
+    yq_leader          — Leader with text
+    yq_drawingtitle    — Title block
+    yq_section_symbol  — Section cut symbol
+    yq_elevation_marker — Elevation marker
+    yq_entrance_arrow  — Entrance arrow
+
+  GENERIC (2):
+    yq_execute         — Run ANY of the 684 commands by name
+    yq_list_commands   — Search/browse all 684 commands
+
+
+================================================================================
+  TROUBLESHOOTING
+================================================================================
+
+PROBLEM: Claude doesn't show autocad-arch tools
+  FIX: Restart Claude Desktop. Check config at:
+       C:\Users\Admin\AppData\Roaming\Claude\claude_desktop_config.json
+       Make sure "autocad-arch" entry exists and path is correct.
+
+PROBLEM: "ACCESS DENIED - License required"
+  FIX: Run: node dist/index.js --license
+       If not licensed, re-run the owner activation (Step 2).
+
+PROBLEM: Commands sent but nothing happens in AutoCAD
+  FIX: Make sure you loaded the LISP bridge (Step 4).
+       Type YQMCP-DISPATCH in AutoCAD command line.
+       Check C:\temp\ for .json files — they should appear and disappear.
+
+PROBLEM: AutoCAD says "Unknown command YQ_WALL"
+  FIX: YQArch plugin is not loaded. Load it first in AutoCAD.
+
+PROBLEM: "IPC Error" or timeout
+  FIX: Make sure C:\temp\ folder exists.
+       Make sure AutoCAD is open with the LISP bridge loaded.
+       Run YQMCP-DISPATCH in AutoCAD.
+
+PROBLEM: Need to rebuild after code changes
+  FIX: cd "C:\Users\Admin\Desktop\Claude project\yqarch-mcp"
+       npm run build
+       Restart Claude Desktop.
+
+
+================================================================================
+  QUICK REFERENCE (daily workflow)
+================================================================================
+
+  1. Open AutoCAD
+  2. APPLOAD > load acad_mcp_bridge.lsp  (or auto-loads from Startup Suite)
+  3. Type YQMCP-START in AutoCAD
+  4. Open Claude Desktop
+  5. Tell Claude what to draw
+  6. After each Claude response, type YQMCP-DISPATCH in AutoCAD
+  7. Repeat 5-6 as needed
+
+That's it. You're the owner — your license never expires.
+
+
+================================================================================
+  FILE LOCATIONS
+================================================================================
+
+  Project:     C:\Users\Admin\Desktop\Claude project\yqarch-mcp\
+  LISP bridge: C:\Users\Admin\Desktop\Claude project\yqarch-mcp\lisp\acad_mcp_bridge.lsp
+  Built JS:    C:\Users\Admin\Desktop\Claude project\yqarch-mcp\dist\index.js
+  License:     %USERPROFILE%\.autocad-mcp-activation
+  IPC folder:  C:\temp\
+  Claude cfg:  C:\Users\Admin\AppData\Roaming\Claude\claude_desktop_config.json
+
+================================================================================

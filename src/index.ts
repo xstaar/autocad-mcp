@@ -105,94 +105,94 @@ function reg(
 //  WALLS (8 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_wall", "Tracer un mur double ligne", walls.yqWallSchema, walls.handleYqWall);
-reg("yq_simple_wall", "Mur simple (une ligne)", walls.yqSimpleWallSchema, walls.handleYqSimpleWall);
-reg("yq_areawall", "Mur par zone/surface fermée", walls.yqAreawallSchema, walls.handleYqAreawall);
-reg("yq_line2wall", "Convertir une ligne existante en mur", walls.yqLine2wallSchema, walls.handleYqLine2wall);
-reg("yq_wall_chgthk", "Changer l'épaisseur d'un mur existant", walls.yqWallChgthkSchema, walls.handleYqWallChgthk);
-reg("yq_partitionwall", "Tracer un mur de cloison", walls.yqPartitionwallSchema, walls.handleYqPartitionwall);
-reg("yq_curtainwall", "Tracer un mur-rideau", walls.yqCurtainwallSchema, walls.handleYqCurtainwall);
-reg("yq_doubleline", "Tracer une double ligne (longrine/fondation)", walls.yqDoublelineSchema, walls.handleYqDoubleline);
+reg("yq_wall", "Draw a double-line wall", walls.yqWallSchema, walls.handleYqWall);
+reg("yq_simple_wall", "Draw a single-line wall", walls.yqSimpleWallSchema, walls.handleYqSimpleWall);
+reg("yq_areawall", "Create wall from closed area/region", walls.yqAreawallSchema, walls.handleYqAreawall);
+reg("yq_line2wall", "Convert an existing line to a wall", walls.yqLine2wallSchema, walls.handleYqLine2wall);
+reg("yq_wall_chgthk", "Change thickness of an existing wall", walls.yqWallChgthkSchema, walls.handleYqWallChgthk);
+reg("yq_partitionwall", "Draw a partition wall", walls.yqPartitionwallSchema, walls.handleYqPartitionwall);
+reg("yq_curtainwall", "Draw a curtain wall", walls.yqCurtainwallSchema, walls.handleYqCurtainwall);
+reg("yq_doubleline", "Draw a double line (beam/foundation)", walls.yqDoublelineSchema, walls.handleYqDoubleline);
 
 // ══════════════════════════════════════════════════════════
 //  COLUMNS (6 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_r_column", "Poteau rectangulaire", columns.yqRColumnSchema, columns.handleYqRColumn);
-reg("yq_c_column", "Poteau circulaire", columns.yqCColumnSchema, columns.handleYqCColumn);
-reg("yq_l_column", "Poteau en L", columns.yqLColumnSchema, columns.handleYqLColumn);
-reg("yq_t_column", "Poteau en T", columns.yqTColumnSchema, columns.handleYqTColumn);
-reg("yq_o_column", "Poteau creux/annulaire", columns.yqOColumnSchema, columns.handleYqOColumn);
-reg("yq_axis_column", "Poteau sur axe (grille structurelle)", columns.yqAxisColumnSchema, columns.handleYqAxisColumn);
+reg("yq_r_column", "Insert rectangular column", columns.yqRColumnSchema, columns.handleYqRColumn);
+reg("yq_c_column", "Insert circular column", columns.yqCColumnSchema, columns.handleYqCColumn);
+reg("yq_l_column", "Insert L-shaped column", columns.yqLColumnSchema, columns.handleYqLColumn);
+reg("yq_t_column", "Insert T-shaped column", columns.yqTColumnSchema, columns.handleYqTColumn);
+reg("yq_o_column", "Insert hollow/annular column", columns.yqOColumnSchema, columns.handleYqOColumn);
+reg("yq_axis_column", "Place column on structural grid axis", columns.yqAxisColumnSchema, columns.handleYqAxisColumn);
 
 // ══════════════════════════════════════════════════════════
 //  DOORS & WINDOWS (6 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_door", "Insérer une porte dans un mur", doors.yqDoorSchema, doors.handleYqDoor);
-reg("yq_window", "Insérer une fenêtre dans un mur", doors.yqWindowSchema, doors.handleYqWindow);
-reg("yq_windowdoor", "Insérer une porte-fenêtre", doors.yqWindowdoorSchema, doors.handleYqWindowdoor);
-reg("yq_hole_door", "Percement de porte dans un mur", doors.yqHoleDoorSchema, doors.handleYqHoleDoor);
-reg("yq_hole_window", "Percement de fenêtre dans un mur", doors.yqHoleWindowSchema, doors.handleYqHoleWindow);
-reg("yq_glass_partition", "Cloison vitrée", doors.yqGlassPartitionSchema, doors.handleYqGlassPartition);
+reg("yq_door", "Insert a door in a wall", doors.yqDoorSchema, doors.handleYqDoor);
+reg("yq_window", "Insert a window in a wall", doors.yqWindowSchema, doors.handleYqWindow);
+reg("yq_windowdoor", "Insert a window-door (french door)", doors.yqWindowdoorSchema, doors.handleYqWindowdoor);
+reg("yq_hole_door", "Cut a door opening in a wall", doors.yqHoleDoorSchema, doors.handleYqHoleDoor);
+reg("yq_hole_window", "Cut a window opening in a wall", doors.yqHoleWindowSchema, doors.handleYqHoleWindow);
+reg("yq_glass_partition", "Insert a glass partition", doors.yqGlassPartitionSchema, doors.handleYqGlassPartition);
 
 // ══════════════════════════════════════════════════════════
 //  STAIRS (6 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_staircase_plan", "Plan d'escalier droit", stairs.yqStaircasePlanSchema, stairs.handleYqStaircasePlan);
-reg("yq_staircase_section", "Coupe d'escalier", stairs.yqStaircaseSectionSchema, stairs.handleYqStaircaseSection);
-reg("yq_arcstair_plan", "Plan d'escalier courbe", stairs.yqArcstairPlanSchema, stairs.handleYqArcstairPlan);
-reg("yq_lift_plan", "Plan d'ascenseur", stairs.yqLiftPlanSchema, stairs.handleYqLiftPlan);
-reg("yq_banister", "Garde-corps / rampe", stairs.yqBanisterSchema, stairs.handleYqBanister);
-reg("yq_escalator", "Escalier mécanique / escalator", {}, stairs.handleYqEscalator);
+reg("yq_staircase_plan", "Draw straight staircase plan", stairs.yqStaircasePlanSchema, stairs.handleYqStaircasePlan);
+reg("yq_staircase_section", "Draw staircase section view", stairs.yqStaircaseSectionSchema, stairs.handleYqStaircaseSection);
+reg("yq_arcstair_plan", "Draw curved staircase plan", stairs.yqArcstairPlanSchema, stairs.handleYqArcstairPlan);
+reg("yq_lift_plan", "Draw elevator/lift plan", stairs.yqLiftPlanSchema, stairs.handleYqLiftPlan);
+reg("yq_banister", "Draw railing/handrail", stairs.yqBanisterSchema, stairs.handleYqBanister);
+reg("yq_escalator", "Draw escalator", {}, stairs.handleYqEscalator);
 
 // ══════════════════════════════════════════════════════════
 //  DIMENSIONS & GRIDS (8 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_dim_auto", "Cotation automatique des murs et ouvertures", dimensions.yqDimAutoSchema, dimensions.handleYqDimAuto);
-reg("yq_gridaxis", "Grille d'axes structurelle (trame)", dimensions.yqGridaxisSchema, dimensions.handleYqGridaxis);
-reg("yq_dim_linear", "Cotation linéaire entre 2 points", dimensions.yqDimLinearSchema, dimensions.handleYqDimLinear);
-reg("yq_dim_aligned", "Cotation alignée entre 2 points", dimensions.yqDimAlignedSchema, dimensions.handleYqDimAligned);
-reg("yq_dim_continue", "Cotation continue (chaîne de cotes)", dimensions.yqDimContinueSchema, dimensions.handleYqDimContinue);
-reg("yq_dim_baseline", "Cotation depuis une ligne de base", dimensions.yqDimBaselineSchema, dimensions.handleYqDimBaseline);
-reg("yq_auto_axis_dim", "Cotation automatique des axes", dimensions.yqAutoAxisDimSchema, dimensions.handleYqAutoAxisDim);
-reg("yq_axisline", "Ligne d'axe", dimensions.yqAxislinesSchema, dimensions.handleYqAxisline);
+reg("yq_dim_auto", "Auto-dimension walls and openings", dimensions.yqDimAutoSchema, dimensions.handleYqDimAuto);
+reg("yq_gridaxis", "Create structural grid axis system", dimensions.yqGridaxisSchema, dimensions.handleYqGridaxis);
+reg("yq_dim_linear", "Linear dimension between 2 points", dimensions.yqDimLinearSchema, dimensions.handleYqDimLinear);
+reg("yq_dim_aligned", "Aligned dimension between 2 points", dimensions.yqDimAlignedSchema, dimensions.handleYqDimAligned);
+reg("yq_dim_continue", "Continue dimension chain", dimensions.yqDimContinueSchema, dimensions.handleYqDimContinue);
+reg("yq_dim_baseline", "Baseline dimension from reference", dimensions.yqDimBaselineSchema, dimensions.handleYqDimBaseline);
+reg("yq_auto_axis_dim", "Auto-dimension grid axes", dimensions.yqAutoAxisDimSchema, dimensions.handleYqAutoAxisDim);
+reg("yq_axisline", "Draw axis line", dimensions.yqAxislinesSchema, dimensions.handleYqAxisline);
 
 // ══════════════════════════════════════════════════════════
 //  LAYERS (9 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_layer_new", "Créer un nouveau calque", layers.yqLayerNewSchema, layers.handleYqLayerNew);
-reg("yq_layer_current", "Définir le calque courant", layers.yqLayerCurrentSchema, layers.handleYqLayerCurrent);
-reg("yq_layer_off", "Éteindre un calque", layers.yqLayerOnOffSchema, layers.handleYqLayerOff);
-reg("yq_layer_on", "Allumer un calque", layers.yqLayerOnOffSchema, layers.handleYqLayerOn);
-reg("yq_layer_freeze", "Geler un calque", layers.yqLayerOnOffSchema, layers.handleYqLayerFreeze);
-reg("yq_layer_thaw", "Dégeler un calque", layers.yqLayerOnOffSchema, layers.handleYqLayerThaw);
-reg("yq_layer_iso", "Isoler un calque (éteindre les autres)", layers.yqLayerOnOffSchema, layers.handleYqLayerIso);
-reg("yq_layer_showall", "Afficher tous les calques", {}, layers.handleYqLayerShowall);
-reg("yq_layer_rename", "Renommer un calque", layers.yqLayerRenameSchema, layers.handleYqLayerRename);
+reg("yq_layer_new", "Create a new layer", layers.yqLayerNewSchema, layers.handleYqLayerNew);
+reg("yq_layer_current", "Set the current/active layer", layers.yqLayerCurrentSchema, layers.handleYqLayerCurrent);
+reg("yq_layer_off", "Turn off a layer", layers.yqLayerOnOffSchema, layers.handleYqLayerOff);
+reg("yq_layer_on", "Turn on a layer", layers.yqLayerOnOffSchema, layers.handleYqLayerOn);
+reg("yq_layer_freeze", "Freeze a layer", layers.yqLayerOnOffSchema, layers.handleYqLayerFreeze);
+reg("yq_layer_thaw", "Thaw a layer", layers.yqLayerOnOffSchema, layers.handleYqLayerThaw);
+reg("yq_layer_iso", "Isolate a layer (turn off all others)", layers.yqLayerOnOffSchema, layers.handleYqLayerIso);
+reg("yq_layer_showall", "Show all layers", {}, layers.handleYqLayerShowall);
+reg("yq_layer_rename", "Rename a layer", layers.yqLayerRenameSchema, layers.handleYqLayerRename);
 
 // ══════════════════════════════════════════════════════════
 //  HATCHING & MATERIALS (4 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_hatch_quick", "Hachure rapide", hatching.yqHatchQuickSchema, hatching.handleYqHatchQuick);
-reg("yq_insulation", "Hachure d'isolation thermique", hatching.yqInsulationSchema, hatching.handleYqInsulation);
-reg("yq_stonetile", "Carrelage / pierre", hatching.yqStonetileSchema, hatching.handleYqStonetile);
-reg("yq_woodflooring", "Parquet / bois", hatching.yqWoodflooringSchema, hatching.handleYqWoodflooring);
+reg("yq_hatch_quick", "Quick hatch fill", hatching.yqHatchQuickSchema, hatching.handleYqHatchQuick);
+reg("yq_insulation", "Insulation hatch pattern", hatching.yqInsulationSchema, hatching.handleYqInsulation);
+reg("yq_stonetile", "Stone tile pattern", hatching.yqStonetileSchema, hatching.handleYqStonetile);
+reg("yq_woodflooring", "Wood flooring pattern", hatching.yqWoodflooringSchema, hatching.handleYqWoodflooring);
 
 // ══════════════════════════════════════════════════════════
 //  ANNOTATIONS & SYMBOLS (6 tools)
 // ══════════════════════════════════════════════════════════
 
-reg("yq_text", "Insérer un texte", annotations.yqTextSchema, annotations.handleYqText);
-reg("yq_leader", "Ligne de repère avec texte", annotations.yqLeaderSchema, annotations.handleYqLeader);
-reg("yq_drawingtitle", "Cartouche / titre de plan", annotations.yqDrawingtitleSchema, annotations.handleYqDrawingtitle);
-reg("yq_section_symbol", "Symbole de coupe", annotations.yqSymbolSectioncutterSchema, annotations.handleYqSymbolSectioncutter);
-reg("yq_elevation_marker", "Repère de cote de niveau", annotations.yqElevindexerSchema, annotations.handleYqElevindexer);
-reg("yq_entrance_arrow", "Flèche d'entrée", annotations.yqEntrancearrowSchema, annotations.handleYqEntrancearrow);
+reg("yq_text", "Insert text annotation", annotations.yqTextSchema, annotations.handleYqText);
+reg("yq_leader", "Insert leader line with text", annotations.yqLeaderSchema, annotations.handleYqLeader);
+reg("yq_drawingtitle", "Insert title block", annotations.yqDrawingtitleSchema, annotations.handleYqDrawingtitle);
+reg("yq_section_symbol", "Insert section cut symbol", annotations.yqSymbolSectioncutterSchema, annotations.handleYqSymbolSectioncutter);
+reg("yq_elevation_marker", "Insert elevation level marker", annotations.yqElevindexerSchema, annotations.handleYqElevindexer);
+reg("yq_entrance_arrow", "Insert entrance arrow", annotations.yqEntrancearrowSchema, annotations.handleYqEntrancearrow);
 
 // ══════════════════════════════════════════════════════════
 //  GENERIC TOOLS (2 tools) — access to ALL 684 commands
@@ -219,9 +219,9 @@ server.tool(
 server.tool(
   "yq_list_commands",
   "List and search the 684 available architectural commands. " +
-  "Filtrer par catégorie (walls, doors_windows, columns, stairs, dimensions, " +
+  "Filter by category (walls, doors_windows, columns, stairs, dimensions, " +
   "grid_axes, hatching, layers, blocks, text, editing, curves, viewports, etc.) " +
-  "ou rechercher par mot-clé.",
+  "or search by keyword.",
   yqListCommandsSchema,
   async (args: Record<string, unknown>) => {
     const result = handleYqListCommands(args as { category?: string; search?: string });
