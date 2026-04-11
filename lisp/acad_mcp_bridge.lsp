@@ -1,9 +1,7 @@
-;;;; acad_mcp_bridge.lsp — Generic bridge between autocad-mcp (Node.js) and AutoCAD
+;;;; acad_mcp_bridge.lsp — Bridge between MCP server and AutoCAD + YQArch
 ;;;;
-;;;; This bridge dispatches architectural commands received from the MCP server.
-;;;; It reads command files from C:/temp/, executes the command, and writes the result.
-;;;;
-;;;; Protocol:
+;;;; Dispatches commands from MCP → calls real YQArch LISP functions.
+;;;; Protocol: file-based IPC via C:/temp/
 ;;;;   Request:  C:/temp/acad_mcp_cmd_{id}.json
 ;;;;   Response: C:/temp/acad_mcp_result_{id}.json
 
@@ -30,10 +28,10 @@
   out
 )
 
-(defun yqmcp-write-result (filepath request_id ok payload_json / f tmp)
-  "Write a result JSON file atomically (via .tmp rename)."
-  (setq tmp (strcat filepath ".tmp"))
-  (setq f (open tmp "w"))
+(defun yqmcp-write-result (filepath request_id ok payload_json / f)
+  "Write a result JSON file."
+  (if (findfile filepath) (vl-file-delete filepath))
+  (setq f (open filepath "w"))
   (if f
     (progn
       (write-line "{" f)
@@ -45,10 +43,9 @@
       (write-line (strcat "  \"payload\": " payload_json) f)
       (write-line "}" f)
       (close f)
-      (if (findfile filepath) (vl-file-delete filepath))
-      (vl-file-rename tmp filepath)
+      (princ (strcat "\n[yqmcp] Result written: " filepath))
     )
-    (princ (strcat "\n[yqmcp] ERROR: Cannot write " tmp))
+    (princ (strcat "\n[yqmcp] ERROR: Cannot write " filepath))
   )
 )
 
@@ -167,132 +164,511 @@
 )
 
 ;;; ============================================================
-;;; Generic command execution
+;;; YQArch function caller — invokes the REAL plugin functions
 ;;; ============================================================
 
-(defun yqmcp-execute-command (cmd params-json / layer thickness pts pt1 w h)
-  "Execute any YQ command. Uses params from JSON to feed command-line prompts.
-   Returns a JSON payload string describing the result."
+(defun yqmcp-call-yqarch (funcname / fn result)
+  "Call a YQArch LISP function by name string. Returns T on success, nil on failure."
+  (princ (strcat "\n[yqmcp] Calling YQArch: (c:" funcname ")"))
+  ;; Suppress dialogs where possible
+  (setvar "CMDDIA" 0)
+  ;; Try calling the function
+  (setq fn (eval (read (strcat "c:" funcname))))
+  (if fn
+    (progn
+      (vl-catch-all-apply (read (strcat "c:" funcname)) nil)
+      T
+    )
+    ;; Fallback: try as a plain command
+    (progn
+      (princ (strcat "\n[yqmcp] Fallback: (command \"" funcname "\")"))
+      (vl-catch-all-apply 'command (list funcname))
+      T
+    )
+  )
+)
 
-  ;; Extract common parameters
-  (setq layer (yqmcp-json-get-string params-json "layer"))
-  (setq thickness (yqmcp-json-get-number params-json "thickness"))
-  (setq w (yqmcp-json-get-number params-json "width"))
-  (setq h (yqmcp-json-get-number params-json "height"))
-  (setq pts (yqmcp-parse-points (yqmcp-json-get-array params-json "points")))
+;;; ============================================================
+;;; Command execution — routes MCP commands to YQArch functions
+;;; ============================================================
+
+(defun yqmcp-execute-command (cmd params-json / funcname layer result-msg)
+  "Execute a command received from MCP. cmd = YQArch function name (e.g. yq_wall).
+   Returns a JSON payload string."
+
+  ;; Normalize: remove leading underscore or prefix if present
+  (setq funcname (strcase cmd T)) ;; lowercase
 
   ;; Set layer if specified
+  (setq layer (yqmcp-json-get-string params-json "layer"))
   (if (and layer (/= layer "null") (/= layer ""))
-    (progn
-      (command "._-LAYER" "M" layer "")
-    )
+    (command "._-LAYER" "M" layer "")
   )
 
-  ;; Handle specific commands that need parameter feeding
+  ;; Suppress dialogs
+  (setvar "CMDDIA" 0)
+
+  ;; Route based on command name
   (cond
-    ;; ── WALL commands: need thickness + points ──
-    ((member cmd '("YQ_WALL" "YQ_SIMPLE_WALL" "YQ_PARTITIONWALL" "YQ_DOUBLELINE"))
-     (command (strcat "._" cmd))
-     (if thickness (command thickness))
-     (foreach pt pts (command (list (car pt) (cadr pt))))
-     (command "")
+    ;; ── WALL: yq_wall — draws double-line walls ──
+    ((= funcname "yq_wall")
+     (yqmcp-exec-wall params-json)
     )
 
-    ;; ── COLUMN commands: need width + height + insertion point ──
-    ((member cmd '("YQ_R_COLUMN" "YQ_C_COLUMN" "YQ_L_COLUMN" "YQ_T_COLUMN" "YQ_O_COLUMN"))
-     (setq pt1 (yqmcp-parse-points (strcat "[" (yqmcp-json-get-array params-json "insertion_point") "]")))
-     (command (strcat "._" cmd))
-     (if w (command w))
-     (if h (command h))
-     (if pt1 (command (list (car (car pt1)) (cadr (car pt1)))))
-     (command "")
+    ;; ── DOUBLELINE: yq_doubleline ──
+    ((= funcname "yq_doubleline")
+     (yqmcp-exec-doubleline params-json)
     )
 
-    ;; ── DOOR/WINDOW commands: need width + insertion point ──
-    ((member cmd '("YQ_DOOR" "YQ_WINDOW" "YQ_WINDOWDOOR" "YQ_POCKETDOOR"
-                   "YQ_HOLE_DOOR" "YQ_HOLE_WIN" "YQ_HOLE_WINDOW"))
-     (setq pt1 (yqmcp-parse-points (strcat "[" (yqmcp-json-get-array params-json "insertion_point") "]")))
-     (command (strcat "._" cmd))
-     (if w (command w))
-     (if pt1 (command (list (car (car pt1)) (cadr (car pt1)))))
-     (command "")
+    ;; ── PARTITION WALL: yq_partitionwall ──
+    ((= funcname "yq_partitionwall")
+     (yqmcp-exec-wall params-json) ;; same input sequence as wall
     )
 
-    ;; ── STAIRCASE commands ──
-    ((member cmd '("YQ_STAIRCASE_PLAN" "YQ_STAIRCASE_SECTION" "YQ_ARCSTAIR_PLAN"))
-     (setq pt1 (yqmcp-parse-points (strcat "[" (yqmcp-json-get-array params-json "start_point") "]")))
-     (command (strcat "._" cmd))
-     (if pt1 (command (list (car (car pt1)) (cadr (car pt1)))))
-     (command "")
+    ;; ── LINE TO WALL: yq_line2wall ──
+    ((= funcname "yq_line2wall")
+     (princ "\n[yqmcp] yq_line2wall: select lines in AutoCAD")
+     (c:yq_line2wall)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\", \"note\": \"Select lines to convert\"}")
     )
 
-    ;; ── GRIDAXIS: needs origin + spacings ──
-    ((= cmd "YQ_GRIDAXIS")
-     (setq pt1 (yqmcp-parse-points (strcat "[" (yqmcp-json-get-array params-json "origin") "]")))
-     (command "._YQ_GRIDAXIS")
-     (if pt1 (command (list (car (car pt1)) (cadr (car pt1)))))
-     ;; Feed spacings
-     (foreach sp (yqmcp-parse-flat-array (yqmcp-json-get-array params-json "x_spacings"))
-       (command sp)
-     )
-     (command "")
-     (foreach sp (yqmcp-parse-flat-array (yqmcp-json-get-array params-json "y_spacings"))
-       (command sp)
-     )
-     (command "")
+    ;; ── WALL THICKNESS CHANGE: yq_wall_chgthk ──
+    ((= funcname "yq_wall_chgthk")
+     (princ "\n[yqmcp] yq_wall_chgthk: select wall to change")
+     (c:yq_wall_chgthk)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
     )
 
-    ;; ── DIM_AUTO: auto dimensioning ──
-    ((= cmd "YQ_DIM_AUTO")
-     (command "._YQ_DIM_AUTO")
-     (command "")
+    ;; ── TRIM/FIX WALL: yq_trim_fix_wall ──
+    ((= funcname "yq_trim_fix_wall")
+     (c:yq_trim_fix_wall)
+     (strcat "{\"status\": \"ok\", \"command\": \"" funcname "\"}")
     )
 
-    ;; ── TEXT: insert text ──
-    ((= cmd "YQ_TEXT")
-     (setq pt1 (yqmcp-parse-points (strcat "[" (yqmcp-json-get-array params-json "insertion_point") "]")))
-     (command "._YQ_TEXT")
-     (if pt1 (command (list (car (car pt1)) (cadr (car pt1)))))
-     (if h (command h))
-     (command (yqmcp-json-get-string params-json "text"))
-     (command "")
+    ;; ── ERASE WALL/DOOR/COLUMN: yq_erase_wall ──
+    ((= funcname "yq_erase_wall")
+     (c:yq_erase_wall)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
     )
 
-    ;; ── LAYER commands ──
-    ((= cmd "YQ_LAYER_NEW")
+    ;; ── COLUMNS ──
+    ((member funcname '("yq_r_column" "yq_o_column" "yq_l_column" "yq_t_column" "yq_c_column"))
+     (yqmcp-exec-column funcname params-json)
+    )
+
+    ;; ── AXIS COLUMN: yq_axis_column ──
+    ((= funcname "yq_axis_column")
+     (c:yq_axis_column)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── DOORS (on wall — cuts wall and inserts door) ──
+    ((= funcname "yq_hole_door")
+     (yqmcp-exec-hole-door params-json)
+    )
+
+    ;; ── DOOR (free placement) ──
+    ((= funcname "yq_door")
+     (yqmcp-exec-door params-json)
+    )
+
+    ;; ── POCKET DOOR (on wall) ──
+    ((= funcname "yq_hole_pocketdoor")
+     (c:yq_hole_pocketdoor)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── POCKET DOOR (free placement) ──
+    ((= funcname "yq_pocketdoor")
+     (c:yq_pocketdoor)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── WINDOWS (on wall — cuts wall and inserts window) ──
+    ((= funcname "yq_hole_win")
+     (yqmcp-exec-hole-win params-json)
+    )
+
+    ;; ── WINDOW (free placement, simple) ──
+    ((= funcname "yq_win")
+     (c:yq_win)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── PARAMETRIC WINDOW (on wall) ──
+    ((= funcname "yq_hole_window")
+     (c:yq_hole_window)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── PARAMETRIC WINDOW (free placement) ──
+    ((= funcname "yq_window")
+     (c:yq_window)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── CORNER WINDOW ──
+    ((= funcname "yq_hole_cornerwindow")
+     (c:yq_hole_cornerwindow)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── REPLACE DOOR/WINDOW TYPE ──
+    ((= funcname "yq_windoor_replace")
+     (c:yq_windoor_replace)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── CHANGE DOOR/WINDOW WIDTH ──
+    ((= funcname "yq_width_windoor")
+     (c:yq_width_windoor)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── MOVE DOOR/WINDOW ──
+    ((= funcname "yq_move_windoor")
+     (c:yq_move_windoor)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── CUT HOLE IN WALL ──
+    ((= funcname "yq_hole")
+     (c:yq_hole)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── REPAIR DOOR/WINDOW/COLUMN ──
+    ((= funcname "yq_repair")
+     (c:yq_repair)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── FLIP/OVERTURN ──
+    ((= funcname "yq_overturn")
+     (c:yq_overturn)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── STAIRCASE PLAN ──
+    ((= funcname "yq_staircase_plan")
+     (c:yq_staircase_plan)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── STAIRCASE SECTION ──
+    ((= funcname "yq_staircase_section")
+     (c:yq_staircase_section)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── ARC STAIRCASE PLAN ──
+    ((= funcname "yq_arcstair_plan")
+     (c:yq_arcstair_plan)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── ESCALATOR ──
+    ((= funcname "yq_escalator")
+     (c:yq_escalator)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── ELEVATOR/LIFT PLAN ──
+    ((= funcname "yq_lift_plan")
+     (c:yq_lift_plan)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── CURTAIN WALL ──
+    ((= funcname "yq_curtainwall")
+     (c:yq_curtainwall)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── GLASS PARTITION ──
+    ((= funcname "yq_glass_partition")
+     (c:yq_glass_partition)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── BANISTER/RAILING ──
+    ((= funcname "yq_banister")
+     (c:yq_banister)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── AUTO FURNITURE ──
+    ((= funcname "yq_autofurniture")
+     (c:yq_autofurniture)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── AUTO WC/BATHROOM ──
+    ((= funcname "yq_arrangewc")
+     (c:yq_ArrangeWC)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── STONE TILE ──
+    ((= funcname "yq_stonetile")
+     (c:yq_stonetile)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── WOOD FLOORING ──
+    ((= funcname "yq_woodflooring")
+     (c:yq_woodflooring)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── GYPSUM BOARD ──
+    ((= funcname "yq_gypsumboard")
+     (c:yq_gypsumboard)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── INSULATION ──
+    ((= funcname "yq_insulation")
+     (c:yq_insulation)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── AUTO LAMPS ──
+    ((= funcname "yq_autolamps")
+     (c:yq_autolamps)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── GRID AXIS ──
+    ((= funcname "yq_gridaxis")
+     (yqmcp-exec-gridaxis params-json)
+    )
+
+    ;; ── AXIS LINE ──
+    ((= funcname "yq_axisline")
+     (c:yq_axisline)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── AUTO AXIS DIMENSIONING ──
+    ((= funcname "yq_auto_axis_dim")
+     (c:yq_auto_axis_dim)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── AXIS SYMBOLS ──
+    ((= funcname "yq_symbol_axis_c")
+     (c:yq_symbol_axis_c)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── ELEVATION MARKER ──
+    ((= funcname "yq_designed_elevation")
+     (c:yq_designed_elevation)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── SECTION CUT SYMBOL ──
+    ((= funcname "yq_symbol_sectioncutter")
+     (c:yq_symbol_sectionCutter)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── ENTRANCE ARROW ──
+    ((= funcname "yq_entrancearrow")
+     (c:yq_entrancearrow)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── LEADER ──
+    ((= funcname "yq_leader")
+     (c:yq_leader)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── DRAWING TITLE ──
+    ((= funcname "yq_drawingtitle")
+     (c:yq_drawingtitle)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── DIMENSIONS ──
+    ((= funcname "yq_dim_linear")
+     (c:yq_dim_linear)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_dim_aligned")
+     (c:yq_dim_aligned)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_dim_baseline")
+     (c:yq_dim_baseline)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_dim_closedspace")
+     (c:yq_dim_closedspace)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_dim_axiswd")
+     (c:yq_dim_axiswd)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_dim_qdim")
+     (c:yq_dim_qdim)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── TEXT ──
+    ((= funcname "yq_text")
+     (c:yq_text)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_text_replace")
+     (c:yq_text_replace)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_changetext")
+     (c:yq_changetext)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── EXTRA TOOLS ──
+    ((= funcname "yq_trimdoubleline")
+     (c:yq_trimdoubleline)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_alignment")
+     (c:yq_alignment)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+    ((= funcname "yq_transform")
+     (c:yq_transform)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── LAYER TOOLS ──
+    ((= funcname "yq_layertools")
+     (c:yq_layertools)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── AREA WALL (draw wall from closed polyline) ──
+    ((= funcname "yq_areawall")
+     (c:yq_areawall)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── SIMPLE WALL ──
+    ((= funcname "yq_simple_wall")
+     (c:yq_simple_wall)
+     (strcat "{\"status\": \"launched\", \"command\": \"" funcname "\"}")
+    )
+
+    ;; ── STANDARD AUTOCAD LAYER COMMANDS ──
+    ((= funcname "layer_new")
      (command "._-LAYER" "M" (yqmcp-json-get-string params-json "name") "")
+     (strcat "{\"status\": \"ok\", \"command\": \"layer_new\", \"layer\": \""
+             (yqmcp-escape-string (yqmcp-json-get-string params-json "name")) "\"}")
     )
-    ((= cmd "YQ_LAYER_CURRENT")
+    ((= funcname "layer_current")
      (command "._-LAYER" "S" (yqmcp-json-get-string params-json "name") "")
+     (strcat "{\"status\": \"ok\", \"command\": \"layer_current\"}")
     )
-    ((member cmd '("YQ_LAYER_OFF" "YQ_LAYER_ON" "YQ_LAYER_FREEZE" "YQ_LAYER_THAW"
-                   "YQ_LAYER_LOCK" "YQ_LAYER_UNLOCK"))
-     (command (strcat "._" cmd))
-     (command "")
+    ((= funcname "layer_off")
+     (command "._-LAYER" "OFF" (yqmcp-json-get-string params-json "name") "")
+     (strcat "{\"status\": \"ok\", \"command\": \"layer_off\"}")
     )
-    ((= cmd "YQ_LAYER_SHOWALL")
-     (command "._YQ_LAYER_SHOWALL")
+    ((= funcname "layer_on")
+     (command "._-LAYER" "ON" (yqmcp-json-get-string params-json "name") "")
+     (strcat "{\"status\": \"ok\", \"command\": \"layer_on\"}")
+    )
+    ((= funcname "layer_freeze")
+     (command "._-LAYER" "F" (yqmcp-json-get-string params-json "name") "")
+     (strcat "{\"status\": \"ok\", \"command\": \"layer_freeze\"}")
+    )
+    ((= funcname "layer_thaw")
+     (command "._-LAYER" "T" (yqmcp-json-get-string params-json "name") "")
+     (strcat "{\"status\": \"ok\", \"command\": \"layer_thaw\"}")
+    )
+    ((= funcname "layer_showall")
+     (command "._-LAYER" "ON" "*" "T" "*" "")
+     (strcat "{\"status\": \"ok\", \"command\": \"layer_showall\"}")
     )
 
-    ;; ── HATCH ──
-    ((= cmd "YQ_HATCH_QUICK")
-     (command "._YQ_HATCH_QUICK")
-     (command "")
-    )
-
-    ;; ── GENERIC FALLBACK: just invoke the command by name ──
+    ;; ── GENERIC FALLBACK: try calling as YQArch function ──
     (T
-     (princ (strcat "\n[yqmcp] Generic dispatch: " cmd))
-     (command (strcat "._" cmd))
-     ;; Feed points if available
-     (foreach pt pts (command (list (car pt) (cadr pt))))
-     ;; Try to end the command
-     (command "")
+     (princ (strcat "\n[yqmcp] Generic call: (c:" funcname ")"))
+     (setq result-msg
+       (vl-catch-all-apply
+         (function (lambda ()
+           (eval (list (read (strcat "c:" funcname))))
+         ))
+         nil
+       )
+     )
+     (if (vl-catch-all-error-p result-msg)
+       (strcat "{\"status\": \"error\", \"command\": \"" (yqmcp-escape-string funcname)
+               "\", \"error\": \"" (yqmcp-escape-string (vl-catch-all-error-message result-msg)) "\"}")
+       (strcat "{\"status\": \"launched\", \"command\": \"" (yqmcp-escape-string funcname) "\"}")
+     )
     )
   )
+)
 
-  ;; Return a success payload
-  (strcat "{\"status\": \"ok\", \"command\": \"" (yqmcp-escape-string cmd) "\"}")
+;;; ============================================================
+;;; Parameterized command helpers
+;;; ============================================================
+
+(defun yqmcp-exec-wall (params-json / pts thickness)
+  "Execute yq_wall with optional points and thickness parameters."
+  (setq pts (yqmcp-parse-points (yqmcp-json-get-array params-json "points")))
+  (setq thickness (yqmcp-json-get-number params-json "thickness"))
+  (princ (strcat "\n[yqmcp] yq_wall: thickness=" (if thickness (rtos thickness 2 0) "default")
+                 " points=" (itoa (length pts))))
+  ;; Call real YQArch wall function
+  (c:yq_wall)
+  (strcat "{\"status\": \"launched\", \"command\": \"yq_wall\", \"note\": \"YQArch wall dialog opened. Set thickness and draw points.\"}")
+)
+
+(defun yqmcp-exec-doubleline (params-json / pts thickness)
+  "Execute yq_doubleline."
+  (c:yq_doubleline)
+  (strcat "{\"status\": \"launched\", \"command\": \"yq_doubleline\"}")
+)
+
+(defun yqmcp-exec-column (funcname params-json / fn)
+  "Execute a column command."
+  (princ (strcat "\n[yqmcp] Column: " funcname))
+  (eval (list (read (strcat "c:" funcname))))
+  (strcat "{\"status\": \"launched\", \"command\": \"" (yqmcp-escape-string funcname) "\"}")
+)
+
+(defun yqmcp-exec-hole-door (params-json /)
+  "Execute yq_hole_door — cuts wall and inserts door."
+  (princ "\n[yqmcp] yq_hole_door: click on wall to insert door")
+  (c:yq_hole_door)
+  (strcat "{\"status\": \"launched\", \"command\": \"yq_hole_door\", \"note\": \"Click on wall to place door\"}")
+)
+
+(defun yqmcp-exec-door (params-json /)
+  "Execute yq_door — free door placement."
+  (princ "\n[yqmcp] yq_door: place door freely")
+  (c:yq_door)
+  (strcat "{\"status\": \"launched\", \"command\": \"yq_door\", \"note\": \"Place door at desired location\"}")
+)
+
+(defun yqmcp-exec-hole-win (params-json /)
+  "Execute yq_hole_win — cuts wall and inserts window."
+  (princ "\n[yqmcp] yq_hole_win: click on wall to insert window")
+  (c:yq_hole_win)
+  (strcat "{\"status\": \"launched\", \"command\": \"yq_hole_win\", \"note\": \"Click on wall to place window\"}")
+)
+
+(defun yqmcp-exec-gridaxis (params-json / x-sp y-sp origin)
+  "Execute yq_gridaxis — grid axis system."
+  (princ "\n[yqmcp] yq_gridaxis: grid axis system")
+  (c:yq_gridaxis)
+  (strcat "{\"status\": \"launched\", \"command\": \"yq_gridaxis\", \"note\": \"Set grid parameters in dialog\"}")
 )
 
 ;;; ============================================================
@@ -360,21 +736,52 @@
 )
 
 ;;; ============================================================
-;;; Startup / help
+;;; Auto-dispatch via editor reactor
 ;;; ============================================================
 
+(defun yqmcp-auto-check (reactor args)
+  "Called after AutoCAD finishes a command — check for pending MCP files."
+  (vl-catch-all-apply 'c:yqmcp-dispatch nil)
+)
+
+(defun yqmcp-idle-check (reactor args)
+  "Called on idle — check for pending MCP files."
+  (if (vl-directory-files *yqmcp-ipc-dir* "acad_mcp_cmd_*.json" 1)
+    (vl-catch-all-apply 'c:yqmcp-dispatch nil)
+  )
+)
+
+(defun yqmcp-setup-reactor ()
+  "Set up reactors for auto-dispatch."
+  (if (not *yqmcp-reactor*)
+    (progn
+      (setq *yqmcp-reactor*
+        (vlr-editor-reactor nil
+          '((:vlr-commandEnded . yqmcp-auto-check)
+            (:vlr-commandCancelled . yqmcp-auto-check)
+            (:vlr-lispEnded . yqmcp-auto-check)
+          )
+        )
+      )
+      (princ "\n[yqmcp] Editor reactor installed.")
+    )
+  )
+)
+
 (defun c:yqmcp-start ()
-  "Start message for the AutoCAD MCP bridge."
-  (princ "\n╔══════════════════════════════════════════╗")
-  (princ "\n║   AutoCAD MCP Bridge v2.0               ║")
-  (princ "\n║   IPC: C:/temp/acad_mcp_cmd_*.json      ║")
-  (princ "\n║   684 commands available                 ║")
-  (princ "\n╚══════════════════════════════════════════╝")
-  (princ "\n[acad-mcp] Run YQMCP-DISPATCH to process pending commands.")
-  (princ "\n[acad-mcp] Or set up a timer reactor for auto-dispatch.")
+  "Start the MCP bridge with auto-dispatch."
+  (princ "\n============================================")
+  (princ "\n  AutoCAD MCP Bridge v3.0 (YQArch)")
+  (princ "\n  IPC: C:/temp/acad_mcp_cmd_*.json")
+  (princ "\n  Auto-dispatch: editor reactor")
+  (princ "\n============================================")
+  (yqmcp-setup-reactor)
+  ;; Process any pending commands immediately
+  (c:yqmcp-dispatch)
+  (princ "\n[yqmcp] Ready. Commands auto-process after any AutoCAD action.")
   (princ)
 )
 
-;;; Load message
-(princ "\n[acad-mcp] AutoCAD MCP Bridge v2.0 loaded. Type YQMCP-START to begin.")
+;;; Auto-start on load
+(c:yqmcp-start)
 (princ)

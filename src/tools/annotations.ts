@@ -1,67 +1,61 @@
-import { z } from "zod";
 import { dispatch } from "../ipc.js";
 
-const pointSchema = z.tuple([z.number(), z.number()]);
-
-export const yqTextSchema = {
-  text: z.string().describe("Contenu du texte"),
-  insertion_point: pointSchema.describe("Point d'insertion [x, y]"),
-  height: z.number().optional().describe("Hauteur du texte en mm"),
-  rotation: z.number().optional().describe("Angle de rotation en degrés"),
-  layer: z.string().optional().describe("Calque cible (optionnel)"),
-};
-
-export const yqLeaderSchema = {
-  points: z.array(pointSchema).describe("Points de la ligne de repère"),
-  text: z.string().describe("Texte du repère"),
-  layer: z.string().optional().describe("Calque cible (optionnel)"),
-};
-
-export const yqDrawingtitleSchema = {
-  insertion_point: pointSchema.describe("Point d'insertion du cartouche [x, y]"),
-  project_name: z.string().optional().describe("Nom du projet"),
-  drawing_name: z.string().optional().describe("Nom du plan"),
-  scale: z.string().optional().describe("Échelle (ex: 1:100)"),
-  date: z.string().optional().describe("Date"),
-  layer: z.string().optional().describe("Calque cible (optionnel)"),
-};
-
-export const yqSymbolSectioncutterSchema = {
-  point1: pointSchema.describe("Point de début de la coupe [x, y]"),
-  point2: pointSchema.describe("Point de fin de la coupe [x, y]"),
-  label: z.string().optional().describe("Label de la coupe (ex: A-A)"),
-  direction: z.enum(["left", "right", "up", "down"]).optional()
-    .describe("Direction de vue"),
-  layer: z.string().optional().describe("Calque cible (optionnel)"),
-};
-
-export const yqElevindexerSchema = {
-  insertion_point: pointSchema.describe("Point d'insertion [x, y]"),
-  elevation: z.number().describe("Valeur de la cote de niveau en m (ex: +3.600)"),
-  layer: z.string().optional().describe("Calque cible (optionnel)"),
-};
-
-export const yqEntrancearrowSchema = {
-  insertion_point: pointSchema.describe("Point d'insertion [x, y]"),
-  rotation: z.number().optional().describe("Angle de rotation en degrés"),
-  layer: z.string().optional().describe("Calque cible (optionnel)"),
-};
-
+// ── yq_text: Insert text annotation ──
+export const yqTextSchema = {};
 export async function handleYqText(args: Record<string, unknown>) {
-  return dispatch("YQ_TEXT", args);
+  return dispatch("yq_text", args);
 }
+
+// ── yq_text_replace: Find and replace text ──
+export const yqTextReplaceSchema = {};
+export async function handleYqTextReplace(args: Record<string, unknown>) {
+  return dispatch("yq_text_replace", args);
+}
+
+// ── yq_changetext: Modify text properties ──
+export const yqChangetextSchema = {};
+export async function handleYqChangetext(args: Record<string, unknown>) {
+  return dispatch("yq_changetext", args);
+}
+
+// ── yq_leader: Arrow leader with text ──
+export const yqLeaderSchema = {};
 export async function handleYqLeader(args: Record<string, unknown>) {
-  return dispatch("YQ_LEADER", args);
+  return dispatch("yq_leader", args);
 }
+
+// ── yq_drawingtitle: Drawing title block ──
+export const yqDrawingtitleSchema = {};
 export async function handleYqDrawingtitle(args: Record<string, unknown>) {
-  return dispatch("YQ_DRAWINGTITLE", args);
+  return dispatch("yq_drawingtitle", args);
 }
-export async function handleYqSymbolSectioncutter(args: Record<string, unknown>) {
-  return dispatch("YQ_SYMBOL_SECTIONCUTTER", args);
+
+// ── yq_designed_elevation: Elevation level marker ──
+export const yqElevationSchema = {};
+export async function handleYqElevation(args: Record<string, unknown>) {
+  return dispatch("yq_designed_elevation", args);
 }
-export async function handleYqElevindexer(args: Record<string, unknown>) {
-  return dispatch("YQ_ELEVINDEXER1", args);
+
+// ── yq_symbol_sectioncutter: Section cut symbol ──
+export const yqSectionSymbolSchema = {};
+export async function handleYqSectionSymbol(args: Record<string, unknown>) {
+  return dispatch("yq_symbol_sectioncutter", args);
 }
+
+// ── yq_entrancearrow: Entrance arrow ──
+export const yqEntrancearrowSchema = {};
 export async function handleYqEntrancearrow(args: Record<string, unknown>) {
-  return dispatch("YQ_ENTRANCEARROW", args);
+  return dispatch("yq_entrancearrow", args);
+}
+
+// ── yq_alignment: Align elements ──
+export const yqAlignmentSchema = {};
+export async function handleYqAlignment(args: Record<string, unknown>) {
+  return dispatch("yq_alignment", args);
+}
+
+// ── yq_transform: Transform/scale ──
+export const yqTransformSchema = {};
+export async function handleYqTransform(args: Record<string, unknown>) {
+  return dispatch("yq_transform", args);
 }

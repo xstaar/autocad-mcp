@@ -1,50 +1,51 @@
 import { z } from "zod";
 import { dispatch } from "../ipc.js";
 
+// ── layer_new: Create a new layer ──
 export const yqLayerNewSchema = {
-  name: z.string().describe("Nom du nouveau calque"),
-  color: z.number().optional().describe("Numéro de couleur ACI (1-255)"),
-  linetype: z.string().optional().describe("Type de ligne (ex: DASHED)"),
-  lineweight: z.number().optional().describe("Épaisseur de ligne en centièmes de mm"),
+  name: z.string().describe("Layer name to create"),
 };
-
-export const yqLayerCurrentSchema = {
-  name: z.string().describe("Nom du calque à rendre courant"),
-};
-
-export const yqLayerOnOffSchema = {
-  name: z.string().describe("Nom du calque"),
-};
-
-export const yqLayerRenameSchema = {
-  old_name: z.string().describe("Ancien nom du calque"),
-  new_name: z.string().describe("Nouveau nom du calque"),
-};
-
 export async function handleYqLayerNew(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_NEW", args);
+  return dispatch("layer_new", args);
 }
+
+// ── layer_current: Set current layer ──
+export const yqLayerCurrentSchema = {
+  name: z.string().describe("Layer name to set as current"),
+};
 export async function handleYqLayerCurrent(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_CURRENT", args);
+  return dispatch("layer_current", args);
 }
+
+// ── layer_off: Turn off a layer ──
+export const yqLayerOnOffSchema = {
+  name: z.string().describe("Layer name"),
+};
 export async function handleYqLayerOff(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_OFF", args);
+  return dispatch("layer_off", args);
 }
+
+// ── layer_on: Turn on a layer ──
 export async function handleYqLayerOn(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_ON", args);
+  return dispatch("layer_on", args);
 }
+
+// ── layer_freeze: Freeze a layer ──
 export async function handleYqLayerFreeze(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_FREEZE", args);
+  return dispatch("layer_freeze", args);
 }
+
+// ── layer_thaw: Thaw a layer ──
 export async function handleYqLayerThaw(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_THAW", args);
+  return dispatch("layer_thaw", args);
 }
-export async function handleYqLayerIso(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_ISO", args);
-}
+
+// ── layer_showall: Show all layers ──
 export async function handleYqLayerShowall(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_SHOWALL", args);
+  return dispatch("layer_showall", {});
 }
-export async function handleYqLayerRename(args: Record<string, unknown>) {
-  return dispatch("YQ_LAYER_RENAME", args);
+
+// ── yq_layertools: YQArch layer management dialog ──
+export async function handleYqLayertools(args: Record<string, unknown>) {
+  return dispatch("yq_layertools", {});
 }
