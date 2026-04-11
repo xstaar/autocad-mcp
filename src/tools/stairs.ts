@@ -1,37 +1,13 @@
 import { dispatch } from "../ipc.js";
 
-// ── yq_staircase_plan: Staircase plan view ──
-export const yqStaircasePlanSchema = {};
-export async function handleYqStaircasePlan(args: Record<string, unknown>) {
-  return dispatch("yq_staircase_plan", args);
-}
+export const emptySchema = {};
 
-// ── yq_staircase_section: Staircase section view ──
-export const yqStaircaseSectionSchema = {};
-export async function handleYqStaircaseSection(args: Record<string, unknown>) {
-  return dispatch("yq_staircase_section", args);
-}
-
-// ── yq_arcstair_plan: Arc/curved staircase plan ──
-export const yqArcstairPlanSchema = {};
-export async function handleYqArcstairPlan(args: Record<string, unknown>) {
-  return dispatch("yq_arcstair_plan", args);
-}
-
-// ── yq_escalator: Escalator ──
-export const yqEscalatorSchema = {};
-export async function handleYqEscalator(args: Record<string, unknown>) {
-  return dispatch("yq_escalator", args);
-}
-
-// ── yq_lift_plan: Elevator/lift plan ──
-export const yqLiftPlanSchema = {};
-export async function handleYqLiftPlan(args: Record<string, unknown>) {
-  return dispatch("yq_lift_plan", args);
-}
-
-// ── yq_banister: Banister/railing ──
-export const yqBanisterSchema = {};
-export async function handleYqBanister(args: Record<string, unknown>) {
-  return dispatch("yq_banister", args);
-}
+export async function handleYqStaircasePlan(a: Record<string, unknown>) { return dispatch("yq_staircase_plan", a); }
+export async function handleYqStaircaseSection(a: Record<string, unknown>) { return dispatch("yq_staircase_section", a); }
+export async function handleYqArcstairPlan(a: Record<string, unknown>) { return dispatch("yq_arcstair_plan", a); }
+export async function handleYqEscalator(a: Record<string, unknown>) { return dispatch("yq_escalator", a); }
+export async function handleYqLiftPlan(a: Record<string, unknown>) { return dispatch("yq_lift_plan", a); }
+export async function handleYqBanister(a: Record<string, unknown>) { return dispatch("yq_banister", a); }
+export async function handleYqStepsSection(a: Record<string, unknown>) { return dispatch("yq_steps_section", a); }
+export async function handleYqWaterproofSection(a: Record<string, unknown>) { return dispatch("yq_waterproof_section", a); }
+export async function handleYqStuccoSection(a: Record<string, unknown>) { return dispatch("yq_stucco_section", a); }

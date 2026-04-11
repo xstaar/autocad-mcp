@@ -1,82 +1,35 @@
-import { z } from "zod";
 import { dispatch } from "../ipc.js";
 
-// ── yq_wall: Draw double-line wall ──
-export const yqWallSchema = {
-  layer: z.string().optional().describe("Target layer (optional)"),
-};
-export async function handleYqWall(args: Record<string, unknown>) {
-  return dispatch("yq_wall", args);
-}
+// All wall/column tools dispatch to the LISP bridge which calls real YQArch functions.
+// YQArch opens its native dialog in AutoCAD for parameter input.
 
-// ── yq_simple_wall: Single-line wall ──
-export const yqSimpleWallSchema = {
-  layer: z.string().optional().describe("Target layer (optional)"),
-};
-export async function handleYqSimpleWall(args: Record<string, unknown>) {
-  return dispatch("yq_simple_wall", args);
-}
+export const emptySchema = {};
 
-// ── yq_areawall: Wall from closed area ──
-export const yqAreawallSchema = {
-  layer: z.string().optional().describe("Target layer (optional)"),
-};
-export async function handleYqAreawall(args: Record<string, unknown>) {
-  return dispatch("yq_areawall", args);
-}
+// ── Walls ──
+export async function handleYqWall(a: Record<string, unknown>) { return dispatch("yq_wall", a); }
+export async function handleYqTrimFixWall(a: Record<string, unknown>) { return dispatch("yq_trim_fix_wall", a); }
+export async function handleYqWallChgthk(a: Record<string, unknown>) { return dispatch("yq_wall_chgthk", a); }
+export async function handleYqLine2wall(a: Record<string, unknown>) { return dispatch("yq_line2wall", a); }
+export async function handleYqWallOffset(a: Record<string, unknown>) { return dispatch("yq_wall_offset", a); }
+export async function handleYqRebuiltWallAxis(a: Record<string, unknown>) { return dispatch("yq_rebuilt_wall_axis", a); }
+export async function handleYqFillWalls(a: Record<string, unknown>) { return dispatch("yq_fill_walls", a); }
+export async function handleYqEraseWall(a: Record<string, unknown>) { return dispatch("yq_erase_wall", a); }
+export async function handleYqPartitionwall(a: Record<string, unknown>) { return dispatch("yq_partitionwall", a); }
+export async function handleYqCurtainwall(a: Record<string, unknown>) { return dispatch("yq_curtainwall", a); }
+export async function handleYqDoubleline(a: Record<string, unknown>) { return dispatch("yq_doubleline", a); }
+export async function handleYqTrimDoubleline(a: Record<string, unknown>) { return dispatch("yq_trimdoubleline", a); }
+export async function handleYqDoublelineThk(a: Record<string, unknown>) { return dispatch("yq_doubleline_thk", a); }
 
-// ── yq_line2wall: Convert lines to walls ──
-export const yqLine2wallSchema = {
-  layer: z.string().optional().describe("Target layer (optional)"),
-};
-export async function handleYqLine2wall(args: Record<string, unknown>) {
-  return dispatch("yq_line2wall", args);
-}
+// ── Columns ──
+export async function handleYqRColumn(a: Record<string, unknown>) { return dispatch("yq_r_column", a); }
+export async function handleYqOColumn(a: Record<string, unknown>) { return dispatch("yq_o_column", a); }
+export async function handleYqLColumn(a: Record<string, unknown>) { return dispatch("yq_l_column", a); }
+export async function handleYqTColumn(a: Record<string, unknown>) { return dispatch("yq_t_column", a); }
+export async function handleYqCColumn(a: Record<string, unknown>) { return dispatch("yq_c_column", a); }
+export async function handleYqAxisColumn(a: Record<string, unknown>) { return dispatch("yq_axis_column", a); }
+export async function handleYqConvertColumn(a: Record<string, unknown>) { return dispatch("yq_convert_column", a); }
+export async function handleYqFillColumn(a: Record<string, unknown>) { return dispatch("yq_fill_column", a); }
 
-// ── yq_wall_chgthk: Change wall thickness ──
-export const yqWallChgthkSchema = {};
-export async function handleYqWallChgthk(args: Record<string, unknown>) {
-  return dispatch("yq_wall_chgthk", args);
-}
-
-// ── yq_trim_fix_wall: Trim/fix wall intersections ──
-export const yqTrimFixWallSchema = {};
-export async function handleYqTrimFixWall(args: Record<string, unknown>) {
-  return dispatch("yq_trim_fix_wall", args);
-}
-
-// ── yq_erase_wall: Delete wall/column/door ──
-export const yqEraseWallSchema = {};
-export async function handleYqEraseWall(args: Record<string, unknown>) {
-  return dispatch("yq_erase_wall", args);
-}
-
-// ── yq_partitionwall: Partition wall ──
-export const yqPartitionwallSchema = {
-  layer: z.string().optional().describe("Target layer (optional)"),
-};
-export async function handleYqPartitionwall(args: Record<string, unknown>) {
-  return dispatch("yq_partitionwall", args);
-}
-
-// ── yq_curtainwall: Curtain wall ──
-export const yqCurtainwallSchema = {
-  layer: z.string().optional().describe("Target layer (optional)"),
-};
-export async function handleYqCurtainwall(args: Record<string, unknown>) {
-  return dispatch("yq_curtainwall", args);
-}
-
-// ── yq_doubleline: Double line ──
-export const yqDoublelineSchema = {
-  layer: z.string().optional().describe("Target layer (optional)"),
-};
-export async function handleYqDoubleline(args: Record<string, unknown>) {
-  return dispatch("yq_doubleline", args);
-}
-
-// ── yq_trimdoubleline: Trim double line ──
-export const yqTrimDoublelineSchema = {};
-export async function handleYqTrimDoubleline(args: Record<string, unknown>) {
-  return dispatch("yq_trimdoubleline", args);
-}
+// ── Grid / Axis ──
+export async function handleYqAxisline(a: Record<string, unknown>) { return dispatch("yq_axisline", a); }
+export async function handleYqGridaxis(a: Record<string, unknown>) { return dispatch("yq_gridaxis", a); }

@@ -1,51 +1,28 @@
 import { z } from "zod";
 import { dispatch } from "../ipc.js";
 
-// ── layer_new: Create a new layer ──
-export const yqLayerNewSchema = {
-  name: z.string().describe("Layer name to create"),
-};
-export async function handleYqLayerNew(args: Record<string, unknown>) {
-  return dispatch("layer_new", args);
-}
+export const emptySchema = {};
 
-// ── layer_current: Set current layer ──
-export const yqLayerCurrentSchema = {
-  name: z.string().describe("Layer name to set as current"),
-};
-export async function handleYqLayerCurrent(args: Record<string, unknown>) {
-  return dispatch("layer_current", args);
-}
-
-// ── layer_off: Turn off a layer ──
-export const yqLayerOnOffSchema = {
+export const layerNameSchema = {
   name: z.string().describe("Layer name"),
 };
-export async function handleYqLayerOff(args: Record<string, unknown>) {
-  return dispatch("layer_off", args);
-}
 
-// ── layer_on: Turn on a layer ──
-export async function handleYqLayerOn(args: Record<string, unknown>) {
-  return dispatch("layer_on", args);
-}
-
-// ── layer_freeze: Freeze a layer ──
-export async function handleYqLayerFreeze(args: Record<string, unknown>) {
-  return dispatch("layer_freeze", args);
-}
-
-// ── layer_thaw: Thaw a layer ──
-export async function handleYqLayerThaw(args: Record<string, unknown>) {
-  return dispatch("layer_thaw", args);
-}
-
-// ── layer_showall: Show all layers ──
-export async function handleYqLayerShowall(args: Record<string, unknown>) {
-  return dispatch("layer_showall", {});
-}
-
-// ── yq_layertools: YQArch layer management dialog ──
-export async function handleYqLayertools(args: Record<string, unknown>) {
-  return dispatch("yq_layertools", {});
-}
+// ── YQArch Layer Tools (real shortcuts from PDF) ──
+export async function handleYqLayerNew(a: Record<string, unknown>) { return dispatch("yq_layer_new", a); }
+export async function handleYqLayerCurrent(a: Record<string, unknown>) { return dispatch("yq_layer_current", a); }
+export async function handleYqLayerToCurrent(a: Record<string, unknown>) { return dispatch("yq_layer_to_current", a); }
+export async function handleYqLayerOff(a: Record<string, unknown>) { return dispatch("yq_layer_off", a); }
+export async function handleYqLayerOffAll(a: Record<string, unknown>) { return dispatch("yq_layer_off_all", a); }
+export async function handleYqLayerOn(a: Record<string, unknown>) { return dispatch("yq_layer_on", a); }
+export async function handleYqLayerOnAll(a: Record<string, unknown>) { return dispatch("yq_layer_on_all", a); }
+export async function handleYqLayerFreeze(a: Record<string, unknown>) { return dispatch("yq_layer_freeze", a); }
+export async function handleYqLayerThaw(a: Record<string, unknown>) { return dispatch("yq_layer_thaw", a); }
+export async function handleYqLayerThawAll(a: Record<string, unknown>) { return dispatch("yq_layer_thaw_all", a); }
+export async function handleYqLayerIsolate(a: Record<string, unknown>) { return dispatch("yq_layer_isolate", a); }
+export async function handleYqLayerLock(a: Record<string, unknown>) { return dispatch("yq_layer_lock", a); }
+export async function handleYqLayerUnlock(a: Record<string, unknown>) { return dispatch("yq_layer_unlock", a); }
+export async function handleYqLayerToggle(a: Record<string, unknown>) { return dispatch("yq_layer_toggle", a); }
+export async function handleYqLayerMerge(a: Record<string, unknown>) { return dispatch("yq_layer_merge", a); }
+export async function handleYqLayerBatchReplace(a: Record<string, unknown>) { return dispatch("yq_layer_batch_replace", a); }
+export async function handleYqLayerBatchRename(a: Record<string, unknown>) { return dispatch("yq_layer_batch_rename", a); }
+export async function handleYqLayerSaveRestore(a: Record<string, unknown>) { return dispatch("yq_layer_save_restore", a); }
