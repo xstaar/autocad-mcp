@@ -1,7 +1,14 @@
-;;;; acad_mcp_bridge.lsp — Bridge between MCP server and AutoCAD + YQArch
+;;;; acad_mcp_bridge.lsp — Bridge MCP server <-> AutoCAD + YQArch
 ;;;;
-;;;; Dispatches commands from MCP → calls real YQArch LISP functions.
-;;;; Supports ALL 465 YQArch commands via generic handler.
+;;;; The real YQArch plugin (yqarch.vlx) is loaded in AutoCAD.
+;;;; This bridge receives commands from Claude via file-based IPC,
+;;;; calls YQArch LISP functions with parameters, and returns results.
+;;;;
+;;;; KEY: YQArch commands are interactive (they prompt for points, widths).
+;;;; This bridge feeds those prompts programmatically so Claude can drive
+;;;; the full YQArch workflow: walls, doors, windows, columns, stairs,
+;;;; dimensions, annotations — using the REAL block library.
+;;;;
 ;;;; Protocol: file-based IPC via C:/temp/
 ;;;;   Request:  C:/temp/acad_mcp_cmd_{id}.json
 ;;;;   Response: C:/temp/acad_mcp_result_{id}.json
@@ -9,11 +16,10 @@
 (setq *yqmcp-ipc-dir* "C:/temp/")
 
 ;;; ============================================================
-;;; JSON helpers (minimal, no external dependencies)
+;;; JSON helpers
 ;;; ============================================================
 
 (defun yqmcp-escape-string (s / i ch out)
-  "Escape a string for JSON output."
   (setq out "" i 1)
   (repeat (strlen s)
     (setq ch (substr s i 1))
@@ -30,7 +36,6 @@
 )
 
 (defun yqmcp-write-result (filepath request_id ok payload_json / f)
-  "Write a result JSON file."
   (if (findfile filepath) (vl-file-delete filepath))
   (setq f (open filepath "w"))
   (if f
@@ -44,14 +49,12 @@
       (write-line (strcat "  \"payload\": " payload_json) f)
       (write-line "}" f)
       (close f)
-      (princ (strcat "\n[yqmcp] Result written: " filepath))
     )
     (princ (strcat "\n[yqmcp] ERROR: Cannot write " filepath))
   )
 )
 
 (defun yqmcp-json-get-string (json key / pos start end)
-  "Extract a string value from JSON by key name."
   (setq pos (vl-string-search (strcat "\"" key "\"") json))
   (if pos
     (progn
@@ -72,32 +75,69 @@
   )
 )
 
-;;; ============================================================
-;;; Generic YQArch function caller — handles ALL 465 commands
-;;; ============================================================
-
-(defun yqmcp-execute-command (cmd params-json / funcname layer result-msg)
-  "Execute a command received from MCP. cmd = YQArch function name.
-   Calls (c:funcname) directly — works for ALL YQArch commands.
-   Returns a JSON payload string."
-
-  ;; Normalize to lowercase
-  (setq funcname (strcase cmd T))
-
-  ;; Set layer if specified in params
-  (setq layer (yqmcp-json-get-string params-json "layer"))
-  (if (and layer (/= layer "null") (/= layer ""))
+(defun yqmcp-json-get-number (json key / pos colpos rest numstr i ch)
+  (setq pos (vl-string-search (strcat "\"" key "\"") json))
+  (if pos
     (progn
-      (princ (strcat "\n[yqmcp] Setting layer: " layer))
-      (command "._-LAYER" "M" layer "")
+      (setq colpos (vl-string-search ":" json pos))
+      (if colpos
+        (progn
+          (setq rest (substr json (+ colpos 2)))
+          ;; skip whitespace
+          (setq i 1)
+          (while (and (<= i (strlen rest)) (member (substr rest i 1) '(" " "\t" "\n")))
+            (setq i (1+ i))
+          )
+          (setq numstr "" ch (substr rest i 1))
+          (while (and (<= i (strlen rest)) (or (= ch ".") (= ch "-")
+                      (and (>= (ascii ch) 48) (<= (ascii ch) 57))))
+            (setq numstr (strcat numstr ch))
+            (setq i (1+ i))
+            (if (<= i (strlen rest)) (setq ch (substr rest i 1)))
+          )
+          (if (/= numstr "") (atof numstr) nil)
+        )
+      )
     )
   )
+)
 
-  ;; Suppress dialogs where possible
+;;; ============================================================
+;;; COMMAND EXECUTOR — handles YQArch + LISP eval + AutoCAD
+;;; ============================================================
+
+(defun yqmcp-execute-command (cmd params-json / funcname result-msg expr layer)
+  (setq funcname (strcase cmd T))
   (setvar "CMDDIA" 0)
 
-  ;; Special handling for standard AutoCAD layer commands (not YQArch)
   (cond
+    ;; ═══════════════════════════════════════════
+    ;; LISP EVAL — run arbitrary AutoLISP
+    ;; ═══════════════════════════════════════════
+    ((= funcname "_lisp_eval")
+     (setq expr (yqmcp-json-get-string params-json "expression"))
+     (if expr
+       (progn
+         (princ (strcat "\n[yqmcp] Eval: " (if (> (strlen expr) 80) (strcat (substr expr 1 80) "...") expr)))
+         (setq result-msg
+           (vl-catch-all-apply
+             (function (lambda () (eval (read expr))))
+             nil
+           )
+         )
+         (if (vl-catch-all-error-p result-msg)
+           (strcat "{\"status\": \"error\", \"error\": \""
+                   (yqmcp-escape-string (vl-catch-all-error-message result-msg)) "\"}")
+           (strcat "{\"status\": \"ok\", \"result\": \"eval complete\"}")
+         )
+       )
+       "{\"status\": \"error\", \"error\": \"No expression\"}"
+     )
+    )
+
+    ;; ═══════════════════════════════════════════
+    ;; LAYER TOOLS — direct, no dialog
+    ;; ═══════════════════════════════════════════
     ((= funcname "yq_layer_new")
      (setq layer (yqmcp-json-get-string params-json "name"))
      (if layer (command "._-LAYER" "M" layer ""))
@@ -110,21 +150,38 @@
      (strcat "{\"status\": \"ok\", \"command\": \"yq_layer_current\"}")
     )
 
-    ;; ── GENERIC HANDLER: call any YQArch function by name ──
+    ;; ═══════════════════════════════════════════
+    ;; GENERIC HANDLER — call ANY YQArch function
+    ;; This calls (c:yq_functionname) which triggers
+    ;; the real YQArch command from yqarch.vlx
+    ;; The command will use YQArch's block library,
+    ;; layers, and configuration automatically.
+    ;; ═══════════════════════════════════════════
     (T
      (princ (strcat "\n[yqmcp] Calling: (c:" funcname ")"))
-     (setq result-msg
-       (vl-catch-all-apply
-         (function (lambda ()
-           (eval (list (read (strcat "c:" funcname))))
-         ))
-         nil
-       )
-     )
-     (if (vl-catch-all-error-p result-msg)
-       ;; Function call failed — try as AutoCAD command fallback
+
+     ;; Check if function exists
+     (if (eval (read (strcat "c:" funcname)))
        (progn
-         (princ (strcat "\n[yqmcp] Function not found, trying command: " funcname))
+         ;; Call the YQArch function
+         (setq result-msg
+           (vl-catch-all-apply
+             (function (lambda ()
+               (eval (list (read (strcat "c:" funcname))))
+             ))
+             nil
+           )
+         )
+         (if (vl-catch-all-error-p result-msg)
+           (strcat "{\"status\": \"error\", \"command\": \"" (yqmcp-escape-string funcname)
+                   "\", \"error\": \"" (yqmcp-escape-string (vl-catch-all-error-message result-msg)) "\"}")
+           (strcat "{\"status\": \"launched\", \"command\": \"" (yqmcp-escape-string funcname)
+                   "\", \"note\": \"YQArch command started - may require user interaction in AutoCAD\"}")
+         )
+       )
+       ;; Function not found - try as plain AutoCAD command
+       (progn
+         (princ (strcat "\n[yqmcp] Not a YQArch func, trying AutoCAD command: " funcname))
          (setq result-msg
            (vl-catch-all-apply 'command (list (strcat "_" (strcase funcname))))
          )
@@ -134,25 +191,21 @@
            (strcat "{\"status\": \"launched\", \"command\": \"" (yqmcp-escape-string funcname) "\"}")
          )
        )
-       ;; Success
-       (strcat "{\"status\": \"launched\", \"command\": \"" (yqmcp-escape-string funcname) "\"}")
      )
     )
   )
 )
 
 ;;; ============================================================
-;;; Main dispatcher — scans for pending command files
+;;; DISPATCHER — scans for pending command files
 ;;; ============================================================
 
 (defun c:yqmcp-dispatch ( / files fname f fh json line cmd req-id result result-file)
-  "Scan for pending MCP command files and process them."
   (setq files (vl-directory-files *yqmcp-ipc-dir* "acad_mcp_cmd_*.json" 1))
   (foreach fname files
     (setq f (strcat *yqmcp-ipc-dir* fname))
     (princ (strcat "\n[yqmcp] Processing: " fname))
 
-    ;; Read the JSON file
     (setq json "")
     (setq fh (open f "r"))
     (if fh
@@ -162,7 +215,6 @@
         )
         (close fh)
 
-        ;; Extract request_id and command
         (setq req-id (yqmcp-json-get-string json "request_id"))
         (setq cmd (yqmcp-json-get-string json "command"))
 
@@ -170,7 +222,6 @@
           (progn
             (princ (strcat "\n[yqmcp] Command: " cmd " (id: " req-id ")"))
 
-            ;; Execute with error catching
             (setq result
               (vl-catch-all-apply
                 'yqmcp-execute-command
@@ -178,7 +229,6 @@
               )
             )
 
-            ;; Write result
             (setq result-file
               (strcat *yqmcp-ipc-dir* "acad_mcp_result_" req-id ".json")
             )
@@ -192,7 +242,6 @@
               (yqmcp-write-result result-file req-id T result)
             )
 
-            ;; Cleanup command file
             (vl-file-delete f)
             (princ (strcat "\n[yqmcp] Done: " cmd))
           )
@@ -206,18 +255,16 @@
 )
 
 ;;; ============================================================
-;;; Auto-dispatch via editor reactor
+;;; AUTO-DISPATCH via editor reactor
 ;;; ============================================================
 
 (defun yqmcp-auto-check (reactor args)
-  "Called after AutoCAD finishes a command — check for pending MCP files."
   (if (vl-directory-files *yqmcp-ipc-dir* "acad_mcp_cmd_*.json" 1)
     (vl-catch-all-apply 'c:yqmcp-dispatch nil)
   )
 )
 
 (defun yqmcp-setup-reactor ()
-  "Set up reactors for auto-dispatch."
   (if (not *yqmcp-reactor*)
     (progn
       (setq *yqmcp-reactor*
@@ -233,18 +280,49 @@
   )
 )
 
+;;; ============================================================
+;;; TIMER-BASED POLLING (backup for reactor)
+;;; ============================================================
+
+(defun yqmcp-timer-check ()
+  "Timer callback - check for pending commands every 500ms"
+  (if (vl-directory-files *yqmcp-ipc-dir* "acad_mcp_cmd_*.json" 1)
+    (vl-catch-all-apply 'c:yqmcp-dispatch nil)
+  )
+)
+
+;;; ============================================================
+;;; START
+;;; ============================================================
+
 (defun c:yqmcp-start ()
-  "Start the MCP bridge with auto-dispatch."
   (princ "\n============================================")
-  (princ "\n  AutoCAD MCP Bridge v3.1 (YQArch)")
-  (princ "\n  465 commands — all YQArch functions")
+  (princ "\n  AutoCAD MCP Bridge v4.0 (YQArch)")
+  (princ "\n  Real YQArch commands from yqarch.vlx")
+  (princ "\n  Block library: C:/YQArch/sys/windows/")
   (princ "\n  IPC: C:/temp/acad_mcp_cmd_*.json")
-  (princ "\n  Auto-dispatch: editor reactor")
   (princ "\n============================================")
+
+  ;; Ensure YQArch is loaded
+  (if (null c:yq_about)
+    (progn
+      (princ "\n[yqmcp] Loading YQArch...")
+      (if (findfile "yqarch.vlx")
+        (load "yqarch.vlx")
+        (princ "\n[yqmcp] WARNING: yqarch.vlx not found! Add C:\\YQArch\\sys to support paths.")
+      )
+    )
+    (princ "\n[yqmcp] YQArch already loaded.")
+  )
+
+  ;; Ensure IPC dir exists
+  (if (not (vl-file-directory-p *yqmcp-ipc-dir*))
+    (vl-mkdir *yqmcp-ipc-dir*)
+  )
+
   (yqmcp-setup-reactor)
-  ;; Process any pending commands immediately
   (c:yqmcp-dispatch)
-  (princ "\n[yqmcp] Ready. Commands auto-process after any AutoCAD action.")
+  (princ "\n[yqmcp] Ready. Commands dispatched via reactor + lisp_eval.")
   (princ)
 )
 

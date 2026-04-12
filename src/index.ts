@@ -341,6 +341,63 @@ server.tool(
   }
 );
 
+// ══════════════════════════════════════════════════════════
+//  DIRECT DRAWING TOOLS — no dialogs, instant execution
+// ══════════════════════════════════════════════════════════
+
+import * as fs from "fs";
+import * as path from "path";
+import { dispatch } from "./ipc.js";
+import { z } from "zod";
+
+server.tool(
+  "draw_villa_rdc",
+  "Draw a complete professional Villa RDC (ground floor) plan following Moroccan architectural norms. " +
+  "14m x 12m, 3 chambres, salon, cuisine, SDB, WC, garage, hall. " +
+  "Columns 250x250mm, murs ext 200mm, murs int 100mm. " +
+  "Creates all layers, walls, doors, windows, labels, and grid axes automatically. No user interaction needed.",
+  {},
+  async () => {
+    if (!checkLicense()) return licenseDenied();
+    try {
+      const lispPath = path.join(path.dirname(__dirname), "lisp", "villa_rdc.lsp").replace(/\\/g, "/");
+      const loadCmd = `(load "${lispPath}") (c:VILLA-RDC)`;
+      const result = await dispatch("_lisp_eval", { expression: loadCmd });
+      return fmt(result);
+    } catch (e) { return err(e); }
+  }
+);
+
+server.tool(
+  "run_lisp_file",
+  "Load and run a LISP file in AutoCAD. Provide the full path to the .lsp file.",
+  { file_path: z.string().describe("Full path to the .lsp file") },
+  async (args: { file_path: string }) => {
+    if (!checkLicense()) return licenseDenied();
+    try {
+      const filePath = args.file_path.replace(/\\/g, "/");
+      if (!filePath.endsWith(".lsp")) {
+        return { content: [{ type: "text" as const, text: "Error: file must be a .lsp file" }], isError: true };
+      }
+      const result = await dispatch("_lisp_eval", { expression: `(load "${filePath}")` });
+      return fmt(result);
+    } catch (e) { return err(e); }
+  }
+);
+
+server.tool(
+  "lisp_eval",
+  "Evaluate a LISP expression directly in AutoCAD. For drawing geometry, setting variables, or running any AutoLISP code.",
+  { expression: z.string().describe("AutoLISP expression to evaluate") },
+  async (args: { expression: string }) => {
+    if (!checkLicense()) return licenseDenied();
+    try {
+      const result = await dispatch("_lisp_eval", { expression: args.expression });
+      return fmt(result);
+    } catch (e) { return err(e); }
+  }
+);
+
 // ── Start ──
 
 async function main() {
