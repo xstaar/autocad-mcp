@@ -32,6 +32,12 @@
     )
   )
 
+  ;; Add YQArch block paths to search
+  (setq acadpaths (getvar "ACAD"))
+  (if (not (vl-string-search "YQArch" acadpaths))
+    (setvar "ACAD" (strcat acadpaths ";C:\\YQArch\\sys\\windows;C:\\YQArch\\sys\\blocks"))
+  )
+
   ;; ═══════════════════════════════════════════════════════════
   ;; STEP 1: Set scale 1:100 via YQArch
   ;; ═══════════════════════════════════════════════════════════
@@ -93,15 +99,7 @@
   ;; Chambre 2/3 divider: vertical at x=9500, y=8500->12000
   (yqmcp-draw-wall '(9500 8500) '(9500 12000) 100)
 
-  ;; ═══════════════════════════════════════════════════════════
-  ;; STEP 4: Trim/Fix wall intersections using TW
-  ;; ═══════════════════════════════════════════════════════════
-  (princ "\n  Trimming wall intersections...")
-  ;; yq_trim_fix_wall auto-cleans all wall crossings
-  ;; We select all walls
-  (if c:yq_trim_fix_wall
-    (vl-catch-all-apply '(lambda () (c:yq_trim_fix_wall)) nil)
-  )
+  ;; STEP 4: Skip interactive trim (user can run TW manually after)
 
   ;; ═══════════════════════════════════════════════════════════
   ;; STEP 5: COLUMNS 250x250mm using yq_r_column (ZZR)
@@ -187,13 +185,7 @@
   ;; WC - west facade (small)
   (yqmcp-insert-window 0 4900 400 180)
 
-  ;; ═══════════════════════════════════════════════════════════
-  ;; STEP 8: FILL WALLS with solid hatch (WWF)
-  ;; ═══════════════════════════════════════════════════════════
-  (princ "\n  Filling walls...")
-  (if c:yq_fill_wall
-    (vl-catch-all-apply '(lambda () (c:yq_fill_wall)) nil)
-  )
+  ;; STEP 8: Skip interactive fill (user can run WWF manually after)
 
   ;; ═══════════════════════════════════════════════════════════
   ;; STEP 9: ROOM LABELS using yq_text (TT)
